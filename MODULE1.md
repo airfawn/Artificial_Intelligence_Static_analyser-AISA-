@@ -88,7 +88,7 @@ folder:
 
 ```powershell
 py -3.12 -m venv .build-venv
-.\.build-venv\Scripts\python.exe -m pip install . pyinstaller==6.11.1
+.\.build-venv\Scripts\python.exe -m pip install . pyinstaller==6.17.0
 .\installer\windows\build.ps1 `
   -Python ".\.build-venv\Scripts\python.exe" `
   -InnoCompiler "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
