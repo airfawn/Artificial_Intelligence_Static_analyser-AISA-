@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aisa-static-analysis"
+version = "0.1.0"
+description = "Static PE data collection"
+requires-python = ">=3.9"
+dependencies = [
+    "pefile>=2024.8.26",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+aisa = "main:main"
+
+[tool.setuptools]
+py-modules = ["main"]
+packages = ["core", "cli", "models"]
+
+[tool.setuptools.package-data]
+models = ["string_model_weights.json"]

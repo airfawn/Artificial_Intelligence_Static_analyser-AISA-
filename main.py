@@ -1,71 +1,74 @@
 #!/usr/bin/env python3
-"""
-Automating Static Analysis - Main CLI Entrypoint
-Analyzes Windows PE files:
-- Cryptographic Hashes (MD5, SHA1, SHA256)
-- PE Header & Packing Heuristic (VirtualSize vs RawSize discrepancy + Entropy)
-- Native Cross-Platform String Extraction (ASCII & UTF-16LE)
-- Weighted Scoring Engine (Links, Paths, Sensitive APIs, RegKeys, Obfuscation)
-- Crucial IOC Extraction and Rich Terminal Reporting
-"""
+"""Packing-first PE data collection CLI."""
 
-import sys
 import os
 import argparse
 import json
-from core import PEAnalyzer, StringExtractor, StringAnalyzer
+import sys
+from pathlib import Path
+from core.workflow import analyze_file
 from cli import render_report
 
 
 def analyze_target(file_path: str, min_string_len: int = 4, export_json: str = None):
-    if not os.path.exists(file_path):
-        print(f"[!] Error: File '{file_path}' does not exist.")
-        sys.exit(1)
-
-    # 1. PE Header & Packing Analysis
-    pe_analyzer = PEAnalyzer(file_path)
-    pe_summary = pe_analyzer.get_pe_summary()
-
-    # 2. Native Binary String Extraction (ASCII + UTF-16LE)
-    extractor = StringExtractor(min_length=min_string_len)
-    raw_strings = extractor.extract_from_file(file_path)
-
-    # 3. Weighted Heuristic & AI String Analysis
-    analyzer = StringAnalyzer()
-    string_analysis = analyzer.analyze_strings(raw_strings)
-
-    # 4. Render Rich Visual Report
-    render_report(pe_summary, string_analysis)
-
-    # 5. Optional JSON Export for SOC/SIEM pipeline integration
+    if export_json and (
+        os.path.realpath(export_json) == os.path.realpath(file_path)
+        or (os.path.exists(export_json) and os.path.exists(file_path) and os.path.samefile(export_json, file_path))
+    ):
+        raise ValueError("JSON output must not overwrite the input file")
+    report_data = analyze_file(file_path, min_string_len=min_string_len)
     if export_json:
-        report_data = {
-            "pe_metadata": pe_summary,
-            "string_analysis": string_analysis,
-        }
-        with open(export_json, "w") as f:
-            json.dump(report_data, f, indent=2)
-        print(f"[+] Full JSON triage report saved to: {export_json}")
+        destination = Path(export_json)
+        with destination.open("x", encoding="utf-8") as file:
+            json.dump(report_data, file, indent=2, ensure_ascii=True)
+    else:
+        input_path = Path(file_path).absolute()
+        counter = 0
+        while True:
+            suffix = f".report.{counter}.json" if counter else ".report.json"
+            destination = input_path.with_name(input_path.name + suffix)
+            try:
+                with destination.open("x", encoding="utf-8") as file:
+                    json.dump(report_data, file, indent=2, ensure_ascii=True)
+                break
+            except FileExistsError:
+                counter += 1
+    render_report(report_data)
+    print(f"[+] Collection report saved to: {destination}")
+    return report_data
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Automated Static Analysis Engine: PE Packing Detection, Dual-Encoding Strings, & Weighted Threat Scoring",
+        prog="aisa",
+        description="Collect PE packing information, strings, static API tables, and file hashes.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("file", nargs="?", help="Path to Windows PE binary or file to analyze")
+    parser.add_argument("file", nargs="?", help="Path to Windows PE binary (alternative to -f)")
+    parser.add_argument("-f", "--file", dest="file_option", help="Path to Windows PE binary to analyze")
     parser.add_argument("-m", "--min-len", type=int, default=4, help="Minimum string length (default: 4)")
-    parser.add_argument("-j", "--json", type=str, default=None, help="Export analysis report as JSON to specified path")
+    parser.add_argument("-s", "--save", "-j", "--json", dest="json", type=str, default=None,
+                        help="Save JSON report to a new file (default: beside input)")
 
     args = parser.parse_args()
 
-    if not args.file:
+    if args.file and args.file_option:
+        parser.error("provide the input file either positionally or with -f, not both")
+    file_path = args.file_option or args.file
+    if not file_path:
         parser.print_help()
-        print("\n[!] Please provide a file to analyze. Example: python main.py samples/test_sample.exe")
-        sys.exit(0)
+        print("\n[!] Please provide a file to analyze. Example: aisa -f samples/test_sample.exe")
+        return 2
 
-    analyze_target(args.file, min_string_len=args.min_len, export_json=args.json)
+    if args.min_len < 1:
+        parser.error("--min-len must be positive")
+    try:
+        report = analyze_target(file_path, min_string_len=args.min_len, export_json=args.json)
+    except (OSError, ValueError) as exc:
+        print(f"[!] Error: {exc}", file=sys.stderr)
+        return 1
+    return 0 if report["status"] == "complete" else 2
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

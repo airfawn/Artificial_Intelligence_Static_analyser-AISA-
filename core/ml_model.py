@@ -12,15 +12,15 @@ from typing import List, Dict, Any, Tuple
 
 
 class StringFeatureExtractor:
-    """Extracts numerical feature vectors from raw strings for ML models."""
+    """Extracts normalized numerical feature vectors from raw strings for ML models."""
 
     @staticmethod
     def extract_features(text: str) -> Dict[str, float]:
         length = len(text)
         if length == 0:
             return {
-                "length": 0.0,
-                "entropy": 0.0,
+                "norm_length": 0.0,
+                "norm_entropy": 0.0,
                 "digit_ratio": 0.0,
                 "alpha_ratio": 0.0,
                 "upper_ratio": 0.0,
@@ -30,6 +30,10 @@ class StringFeatureExtractor:
                 "has_path_slash": 0.0,
                 "has_exe_dll": 0.0,
                 "is_base64_charset": 0.0,
+                "is_sensitive_api": 0.0,
+                "is_hack_cmd": 0.0,
+                "is_known_good": 0.0,
+                "is_susp_net": 0.0,
             }
 
         digits = sum(c.isdigit() for c in text)
@@ -56,9 +60,36 @@ class StringFeatureExtractor:
         b64_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=")
         is_b64 = 1.0 if (length >= 16 and all(c in b64_chars for c in text) and length % 4 == 0) else 0.0
 
+        # High-signal security keywords for domain grounding
+        sensitive_api_kw = [
+            "virtualalloc", "writeprocess", "createremote", "queueuser",
+            "ntmap", "setthreadcontext", "isdebugger", "checkremotedebugger",
+            "ntqueryinformationprocess", "minidump",
+            "adjusttoken", "lookupprivilege", "setwindowshook", "getasynckey",
+            "urldownloadtofile", "rtlcreateuser"
+        ]
+        is_sensitive_api = 1.0 if any(kw in lower_text for kw in sensitive_api_kw) else 0.0
+
+        hack_cmd_kw = [
+            "bypass", "certutil", "net user", "vssadmin", "schtasks",
+            "bitsadmin", "regsvr32", "rundll32", "mshta", "powershell",
+            "runonce", "run\\", "currentversion\\run"
+        ]
+        is_hack_cmd = 1.0 if any(kw in lower_text for kw in hack_cmd_kw) else 0.0
+
+        known_good = [
+            "microsoft.com", "google.com", "xmlsoap.org", "w3.org",
+            "schemas.microsoft.com", "github.com", "apple.com"
+        ]
+        is_known_good = 1.0 if any(kw in lower_text for kw in known_good) else 0.0
+
+        suspicious_net = [".xyz", ".top", ".ru", ".onion", ".cc", ":4444", ":8080", "pastebin"]
+        is_susp_net = 1.0 if any(kw in lower_text for kw in suspicious_net) else 0.0
+
+        # All features normalized between 0.0 and 1.0
         return {
-            "length": float(length),
-            "entropy": round(entropy, 4),
+            "norm_length": round(min(length / 80.0, 1.0), 4),
+            "norm_entropy": round(min(entropy / 6.0, 1.0), 4),
             "digit_ratio": round(digits / length, 4),
             "alpha_ratio": round(alphas / length, 4),
             "upper_ratio": round(uppers / length, 4),
@@ -68,6 +99,10 @@ class StringFeatureExtractor:
             "has_path_slash": has_path,
             "has_exe_dll": has_binary_ext,
             "is_base64_charset": is_b64,
+            "is_sensitive_api": is_sensitive_api,
+            "is_hack_cmd": is_hack_cmd,
+            "is_known_good": is_known_good,
+            "is_susp_net": is_susp_net,
         }
 
 
@@ -80,31 +115,38 @@ class StringClassifierModel:
 
     def __init__(self, model_file: str = "models/string_model_weights.json"):
         self.model_file = model_file
-        # Initial domain weights for features
+        # Normalized domain weights for features
         self.weights = {
-            "bias": -2.5,
-            "length": 0.015,
-            "entropy": 0.80,
-            "digit_ratio": 0.4,
-            "alpha_ratio": -0.5,     # High alpha ratio → likely a readable English word → lean benign
-            "upper_ratio": 0.3,
-            "special_ratio": 0.5,
-            "hex_ratio": 0.4,
-            "has_url_prefix": 3.0,
-            "has_path_slash": 1.8,
-            "has_exe_dll": 1.6,
+            "bias": -1.5,
+            "norm_length": 0.2,
+            "norm_entropy": 0.5,
+            "digit_ratio": 0.2,
+            "alpha_ratio": -0.2,
+            "upper_ratio": 0.2,
+            "special_ratio": 0.2,
+            "hex_ratio": 0.2,
+            "has_url_prefix": 1.5,
+            "has_path_slash": 0.5,
+            "has_exe_dll": 1.0,
             "is_base64_charset": 2.5,
+            "is_sensitive_api": 3.0,
+            "is_hack_cmd": 3.0,
+            "is_known_good": -4.0,
+            "is_susp_net": 3.0,
         }
         self._load_weights()
 
     def _load_weights(self):
         if os.path.exists(self.model_file):
-            try:
-                with open(self.model_file, "r") as f:
-                    loaded = json.load(f)
-                    self.weights.update(loaded)
-            except Exception:
-                pass
+            with open(self.model_file, "r") as f:
+                loaded = json.load(f)
+            if not isinstance(loaded, dict):
+                raise ValueError(f"Invalid model weights in {self.model_file}: expected an object")
+            for name in self.weights:
+                value = loaded.get(name)
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                    raise ValueError(f"Invalid or missing model weight {name!r} in {self.model_file}")
+            self.weights.update(loaded)
 
     def save_weights(self):
         os.makedirs(os.path.dirname(self.model_file) or ".", exist_ok=True)
@@ -201,4 +243,3 @@ class RLFeedbackTrainer:
         }
         self.training_log.append(log_entry)
         return log_entry
-

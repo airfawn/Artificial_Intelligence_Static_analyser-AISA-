@@ -1,0 +1,1 @@
+"""Trained string classifier weights."""

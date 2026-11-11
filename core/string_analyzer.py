@@ -9,13 +9,17 @@ Categorizes strings based on security indicators:
 """
 
 import re
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Optional, Tuple
+from urllib.parse import urlsplit
+
+from .ml_model import StringClassifierModel
 
 
 class StringAnalyzer:
     """Evaluates extracted strings using weighted heuristic rules and security criteria."""
 
-    def __init__(self):
+    def __init__(self, model: Optional[StringClassifierModel] = None):
+        self.model = model
         # 1. URL and Network Indicators (Instant Suspicious - Weight: 35-45)
         self.url_pattern = re.compile(
             r"(?:https?|ftp|tcp|udp)://(?:[a-zA-Z0-9_\-\.]+(?::\d+)?(?:/[^\s]*)?)|"
@@ -23,6 +27,11 @@ class StringAnalyzer:
             r"[a-zA-Z0-9_\-\.]+\.(?:xyz|top|ru|cc|to|onion|bit)\b",
             re.IGNORECASE,
         )
+        self.domain_pattern = re.compile(
+            r"(?<![A-Za-z0-9_.-])(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+"
+            r"[A-Za-z]{2,63}(?![A-Za-z0-9_.-])"
+        )
+        self.file_extensions = {"exe", "dll", "sys", "bat", "cmd", "ps1", "vbs", "scr"}
 
         # 2. Directory and Filesystem Paths (High Suspicious - Weight: 25-30)
         self.path_pattern = re.compile(
@@ -126,6 +135,16 @@ class StringAnalyzer:
             weight += 40
             reasons.append(f"Network indicator / URL / IP: '{url_match.group(0)}'")
             category = "Network / C2 Link"
+        else:
+            domain = next(
+                (m.group(0) for m in self.domain_pattern.finditer(val)
+                 if m.group(0).lower().rsplit(".", 1)[-1] not in self.file_extensions),
+                None,
+            )
+            if domain:
+                weight += 40
+                reasons.append(f"Domain indicator: '{domain}'")
+                category = "Network / C2 Link"
 
         # Check for Directory Paths (High Suspicious)
         path_match = self.path_pattern.search(val)
@@ -205,9 +224,13 @@ class StringAnalyzer:
             - total_score: Aggregate risk score
             - stats: Total strings parsed, suspicious strings found
         """
+        if self.model is None:
+            raise ValueError("A trained string model is required for string analysis")
+
         scored_strings: List[Dict[str, Any]] = []
         iocs: Dict[str, List[str]] = {
             "urls_and_ips": [],
+            "domains": [],
             "paths": [],
             "sensitive_apis": [],
             "commands": [],
@@ -215,49 +238,91 @@ class StringAnalyzer:
             "obfuscated": [],
         }
 
-        total_risk_score = 0
+        total_risk_score = 0.0
+        seen_strings = set()
+        api_names = {
+            **self.api_tier1_injection,
+            **self.api_tier2_evasion_cred,
+            **self.api_tier3_network_exec,
+        }
+
+        def add_ioc(kind: str, value: str) -> None:
+            if value not in iocs[kind]:
+                iocs[kind].append(value)
 
         for entry in raw_strings:
-            weight, reasons, category = self.evaluate_string(entry)
+            value = entry["value"].strip()
+            key = value.casefold()
+            if key in seen_strings:
+                continue
+            seen_strings.add(key)
+            heuristic_weight, reasons, category = self.evaluate_string(entry)
+            if category == "Noise":
+                continue
+
+            probability, predicted = self.model.predict_suspiciousness(value)
+            # The model adjusts existing rule weights; model-only hits use a 20-point base.
+            base_weight = heuristic_weight if heuristic_weight else (20 if predicted else 0)
+            weight = round(base_weight * probability, 2)
             if weight > 0:
                 total_risk_score += weight
+                if not heuristic_weight:
+                    category = "Model-only candidate"
+                    reasons.append("Classifier flagged a string without a matching heuristic")
                 scored_entry = {
                     "value": entry["value"],
                     "encoding": entry["encoding"],
                     "offset": hex(entry["offset"]),
                     "entropy": entry["entropy"],
                     "weight": weight,
+                    "heuristic_weight": heuristic_weight,
+                    "model_score": probability,
+                    "model_suspicious": predicted,
                     "category": category,
                     "reasons": reasons,
                 }
                 scored_strings.append(scored_entry)
 
-                # Collect into IOC bins
-                val = entry["value"]
-                if category == "Network / C2 Link":
-                    if val not in iocs["urls_and_ips"]:
-                        iocs["urls_and_ips"].append(val)
-                elif "API" in category:
-                    if val not in iocs["sensitive_apis"]:
-                        iocs["sensitive_apis"].append(val)
-                elif "Path" in category:
-                    if val not in iocs["paths"]:
-                        iocs["paths"].append(val)
-                elif "Execution" in category or "Shell" in category:
-                    if val not in iocs["commands"]:
-                        iocs["commands"].append(val)
-                elif "Persistence" in category or "Registry" in category:
-                    if val not in iocs["registry_keys"]:
-                        iocs["registry_keys"].append(val)
-                elif "Encoded" in category or "Obfuscated" in category:
-                    if val not in iocs["obfuscated"]:
-                        iocs["obfuscated"].append(val)
+            for match in self.url_pattern.finditer(value):
+                indicator = match.group(0)
+                add_ioc("urls_and_ips", indicator)
+                if "://" in indicator:
+                    host = urlsplit(indicator).hostname
+                    if host and not re.fullmatch(r"[0-9.]+", host):
+                        add_ioc("domains", host.lower())
+            for match in self.domain_pattern.finditer(value):
+                domain = match.group(0).lower()
+                if domain.rsplit(".", 1)[-1] not in self.file_extensions:
+                    add_ioc("domains", domain)
+            for match in self.path_pattern.finditer(value):
+                add_ioc("paths", match.group(0))
+            for api in api_names:
+                if re.search(r"(?<![A-Za-z0-9_])" + re.escape(api) + r"(?:[AW])?(?![A-Za-z0-9_])", value, re.IGNORECASE):
+                    add_ioc("sensitive_apis", api)
+            if self.cmd_pattern.search(value):
+                add_ioc("commands", value)
+            if self.registry_pattern.search(value):
+                add_ioc("registry_keys", value)
+            if self.base64_pattern.match(value) or (len(value) >= 20 and entry.get("entropy", 0) > 4.6 and not re.search(r"\s", value)):
+                add_ioc("obfuscated", value)
+
+        correlations = []
+        execution_apis = {"CreateProcess", "ShellExecute", "WinExec", "CreateRemoteThread"}
+        if (iocs["urls_and_ips"] or iocs["domains"]) and (
+            iocs["commands"] or execution_apis.intersection(iocs["sensitive_apis"])
+        ):
+            correlations.append({"name": "Network and execution indicators", "weight": 20})
+        if {"WriteProcessMemory", "CreateRemoteThread"}.issubset(iocs["sensitive_apis"]):
+            correlations.append({"name": "Process memory write and remote thread", "weight": 25})
 
         # Sort suspicious strings by weight descending
         scored_strings.sort(key=lambda s: s["weight"], reverse=True)
 
         return {
-            "total_risk_score": total_risk_score,
+            "total_risk_score": round(total_risk_score, 2),
+            "correlations": correlations,
+            "correlation_score": sum(item["weight"] for item in correlations),
+            "unique_strings_count": len(seen_strings),
             "suspicious_count": len(scored_strings),
             "total_strings_count": len(raw_strings),
             "top_suspicious_strings": scored_strings,

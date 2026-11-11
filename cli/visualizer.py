@@ -1,156 +1,136 @@
-"""
-Rich Terminal Visualizer for Static Analysis.
-Renders panels, tables, and color-coded security scorecards.
-"""
+"""Terminal rendering for collected PE metadata, strings, and API tables."""
 
-from typing import Dict, Any, List
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich.text import Text
+from typing import Any, Dict
+
 from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 console = Console()
 
 
-def render_report(pe_summary: Dict[str, Any], string_analysis: Dict[str, Any]):
-    """Renders the comprehensive static analysis triage report to the terminal."""
-    console.print()
+def render_report(report: Dict[str, Any]) -> None:
+    pe = report["pe_metadata"]
+    console.print(Panel("STATIC PE DATA COLLECTION", box=box.DOUBLE))
+    metadata = Table(title="Original file", box=box.ROUNDED)
+    metadata.add_column("Property")
+    metadata.add_column("Value")
+    for label, value in (
+        ("Path", pe["file_path"]),
+        ("Size", f"{pe['file_size']:,} bytes"),
+        ("Valid PE", str(pe["is_valid_pe"])),
+        ("Architecture", pe["architecture"]),
+        ("Subsystem", pe["subsystem"]),
+        ("PE timestamp", str(pe["timestamp"])),
+        ("MD5", pe["hashes"]["md5"]),
+        ("SHA-1", pe["hashes"]["sha1"]),
+        ("SHA-256", pe["hashes"]["sha256"]),
+    ):
+        metadata.add_row(label, Text(str(value)))
+    console.print(metadata)
 
-    # 1. Header Banner
-    banner = Text("  AUTOMATED STATIC ANALYSIS ENGINE  ", style="bold white on blue")
-    console.print(Panel(banner, style="cyan", box=box.DOUBLE))
-
-    # 2. File Metadata & Hashes Table
-    meta_table = Table(title="Binary Metadata & Hashes", box=box.ROUNDED, show_header=True, header_style="bold cyan")
-    meta_table.add_column("Property", style="bold yellow", width=22)
-    meta_table.add_column("Value", style="white")
-
-    meta_table.add_row("Target File", str(pe_summary.get("file_path", "N/A")))
-    meta_table.add_row("File Size", f"{pe_summary.get('file_size', 0):,} bytes")
-    meta_table.add_row("Valid Windows PE", "Yes" if pe_summary.get("is_valid_pe") else "No")
-    meta_table.add_row("Architecture", str(pe_summary.get("architecture", "Unknown")))
-    meta_table.add_row("Subsystem", str(pe_summary.get("subsystem", "Unknown")))
-
-    hashes = pe_summary.get("hashes", {})
-    meta_table.add_row("MD5 Hash", hashes.get("md5", "N/A"))
-    meta_table.add_row("SHA-256 Hash", hashes.get("sha256", "N/A"))
-    console.print(meta_table)
-
-    # 3. PE Header & Packing Analysis Table
-    packing = pe_summary.get("packing", {})
-    is_packed = packing.get("is_packed", False)
-    pack_status = "[bold red]PACKED[/bold red]" if is_packed else "[bold green]UNPACKED[/bold green]"
-    confidence = packing.get("confidence", "N/A")
-
-    pack_panel_content = Text()
-    pack_panel_content.append("Packing Assessment: ", style="bold")
-    pack_panel_content.append(f"{pack_status} (Confidence: {confidence})\n", style="bold")
-    for r in packing.get("reasons", []):
-        pack_panel_content.append(f"  • {r}\n", style="italic")
-
-    console.print(Panel(pack_panel_content, title="PE Header & Packing Detection", border_style="red" if is_packed else "green"))
-
-    # Sections detail table
-    sections = packing.get("sections", [])
-    if sections:
-        sec_table = Table(title="PE Section Geometry & Entropy Analysis", box=box.SIMPLE_HEAD, show_header=True, header_style="bold magenta")
-        sec_table.add_column("Section", style="bold")
-        sec_table.add_column("Virtual Size", justify="right")
-        sec_table.add_column("Raw Size", justify="right")
-        sec_table.add_column("Delta (V - R)", justify="right")
-        sec_table.add_column("Ratio (V/R)", justify="right")
-        sec_table.add_column("Entropy", justify="right")
-        sec_table.add_column("Flags / Status", style="yellow")
-
-        for sec in sections:
-            flags = []
-            if sec.get("is_packer_name"):
-                flags.append("[red]Packer Signature[/red]")
-            if sec.get("is_discrepancy_suspicious"):
-                flags.append("[red]Size Anomaly[/red]")
-            if sec.get("is_high_entropy"):
-                flags.append("[yellow]High Entropy (>7.0)[/yellow]")
-            if not flags:
-                flags.append("[green]Normal[/green]")
-
-            sec_table.add_row(
-                sec["name"],
-                f"0x{sec['virtual_size']:X} ({sec['virtual_size']:,})",
-                f"0x{sec['raw_size']:X} ({sec['raw_size']:,})",
-                f"{sec['size_delta']:,}",
-                f"{sec['discrepancy_ratio']}x",
-                f"{sec['entropy']:.2f}",
-                ", ".join(flags),
-            )
-        console.print(sec_table)
-
-    # 4. Strings & Weighted Model Findings
-    total_strings = string_analysis.get("total_strings_count", 0)
-    suspicious_count = string_analysis.get("suspicious_count", 0)
-    risk_score = string_analysis.get("total_risk_score", 0)
-
-    # Calculate Threat Level
-    if risk_score >= 120 or (is_packed and risk_score >= 60):
-        threat_badge = "[bold white on red] CRITICAL RISK [/bold white on red]"
-    elif risk_score >= 60:
-        threat_badge = "[bold black on yellow] HIGH SUSPICION [/bold black on yellow]"
-    elif risk_score >= 20:
-        threat_badge = "[bold black on cyan] MODERATE SUSPICION [/bold black on cyan]"
-    else:
-        threat_badge = "[bold white on green] LOW / BENIGN [/bold white on green]"
-
-    summary_text = (
-        f"Total Strings Extracted: [bold]{total_strings:,}[/bold] | "
-        f"Suspicious Strings Flagged: [bold red]{suspicious_count}[/bold red] | "
-        f"Aggregate String Risk Score: [bold yellow]{risk_score}[/bold yellow] | "
-        f"Verdict: {threat_badge}"
+    packing = pe["packing"]
+    status = "Invalid PE" if not pe["is_valid_pe"] else (
+        "Likely packed" if packing["is_packed"] else "No packing indicators detected"
     )
-    console.print(Panel(summary_text, title="Crucial String Evaluation & Weighted Model", border_style="yellow"))
-
-    # Suspicious Strings Table
-    top_strings = string_analysis.get("top_suspicious_strings", [])
-    if top_strings:
-        str_table = Table(title=f"Flagged Crucial Strings (Top {min(len(top_strings), 25)})", box=box.ROUNDED, header_style="bold blue")
-        str_table.add_column("Weight", justify="center", style="bold red", width=8)
-        str_table.add_column("Category", style="cyan", width=22)
-        str_table.add_column("Encoding", style="magenta", width=10)
-        str_table.add_column("Offset", style="dim", width=10)
-        str_table.add_column("String Value", style="white", max_width=40, overflow="fold")
-        str_table.add_column("Detection Reasons", style="dim italic", max_width=45, overflow="fold")
-
-        for item in top_strings[:25]:
-            reasons_str = "; ".join(item.get("reasons", []))
-            str_table.add_row(
-                str(item["weight"]),
-                item["category"],
-                item["encoding"],
-                str(item["offset"]),
-                item["value"],
-                reasons_str,
+    details = "\n".join([f"{status} (confidence: {packing['confidence']})"] + packing["reasons"])
+    console.print(Panel(Text(details), title="Packing assessment"))
+    if packing["sections"]:
+        sections = Table(title="PE sections")
+        for column in ("Name", "Virtual size", "Disk size", "Delta", "Ratio", "Entropy", "Indicators"):
+            sections.add_column(column)
+        for section in packing["sections"]:
+            flags = [
+                name for key, name in (
+                    ("is_packer_name", "packer name"),
+                    ("is_discrepancy_suspicious", "size discrepancy"),
+                    ("is_high_entropy", "high entropy"),
+                ) if section[key]
+            ]
+            sections.add_row(
+                Text(section["name"]), str(section["virtual_size"]), str(section["raw_size"]),
+                str(section["size_delta"]), str(section["discrepancy_ratio"]),
+                str(section["entropy"]), ", ".join(flags) or "none",
             )
-        console.print(str_table)
+        console.print(sections)
 
-    # 5. Categorized IOC Summary Panel
-    iocs = string_analysis.get("iocs", {})
-    ioc_text = Text()
+    console.print(Panel(Text(report["unpacking"]["message"]), title="Unpacking"))
+    analyzed = report.get("analyzed_file")
+    if analyzed and analyzed["source"] == "unpacked":
+        hashes = analyzed["hashes"]
+        console.print(Panel(Text(f"MD5: {hashes['md5']}\nSHA-256: {hashes['sha256']}"),
+                            title="Unpacked file hashes"))
+    for error in report["errors"]:
+        console.print(Panel(Text(error), title="Collection error", border_style="red"))
+    if report["strings"] is None or report["apis"] is None:
+        console.print("[bold yellow]Collection incomplete; strings and APIs were not collected.[/bold yellow]")
+        return
 
-    for category_name, ioc_list in [
-        ("Network Links & C2 IPs (Instant Suspicious)", iocs.get("urls_and_ips", [])),
-        ("Directory Paths (High Suspicious)", iocs.get("paths", [])),
-        ("Sensitive / Dangerous APIs", iocs.get("sensitive_apis", [])),
-        ("Shell / Execution LOLBins", iocs.get("commands", [])),
-        ("Persistence Registry Keys", iocs.get("registry_keys", [])),
-        ("Obfuscated / Base64 Candidates", iocs.get("obfuscated", [])),
-    ]:
-        if ioc_list:
-            ioc_text.append(f"\n[+] {category_name} ({len(ioc_list)} found):\n", style="bold yellow")
-            for entry in ioc_list[:10]:
-                ioc_text.append(f"    • {entry}\n", style="white")
-            if len(ioc_list) > 10:
-                ioc_text.append(f"    ... and {len(ioc_list) - 10} more\n", style="dim")
+    apis = report["apis"]
+    console.print(Panel(Text(apis["limitations"]), title="API collection limitations"))
+    for warning in apis["warnings"]:
+        console.print(Panel(Text(warning), title="PE parser warning", border_style="yellow"))
+    for category, title in (("imports", "Imports"), ("delay_imports", "Delay imports"), ("exports", "Exports")):
+        entries = apis[category]
+        status = apis["directories"][category]["status"]
+        if status == "unreadable":
+            console.print(Panel(Text(apis["directories"][category]["message"]),
+                                title=f"{title}: unreadable", border_style="red"))
+            continue
+        if status == "absent":
+            console.print(Panel("No directory is declared in the PE.", title=f"{title}: absent"))
+            continue
+        table = Table(title=f"{title}: {len(entries)} ({status})")
+        for name in ("DLL", "Name", "Ordinal", "Hint", "Address", "Forwarder"):
+            table.add_column(name)
+        for item in entries:
+            address = item.get("address_rva", item.get("address"))
+            table.add_row(
+                Text(str(item.get("dll") or apis.get("export_dll") or "")),
+                Text(str(item.get("name") or "")),
+                str(item["ordinal"]) if item.get("ordinal") is not None else "",
+                str(item["hint"]) if item.get("hint") is not None else "",
+                hex(address) if address is not None else "",
+                Text(str(item.get("forwarder") or "")),
+            )
+        console.print(table)
 
-    if ioc_text.plain.strip():
-        console.print(Panel(ioc_text, title="Extracted Indicators of Compromise (IOCs)", border_style="cyan"))
+    categorized = report["categorized_strings"]
+    console.print(Panel(
+        "Categories contain pattern-matched candidates, not verified behavior. "
+        "Each entry references an extracted string and may occur in multiple categories.",
+        title="Categorized strings",
+    ))
+    for key, title in (
+        ("domains", "Domains"), ("file_paths", "File paths"),
+        ("urls", "URLs"), ("commands", "Command-line candidates"),
+    ):
+        entries = categorized[key]
+        category_table = Table(title=f"{title}: {len(entries)}")
+        for column in ("String index", "File offset", "Encoding", "Match"):
+            category_table.add_column(column)
+        for item in entries:
+            category_table.add_row(
+                str(item["string_index"]), hex(item["string_offset"]),
+                item["encoding"], Text(item["value"]),
+            )
+        console.print(category_table)
 
-    console.print()
+    strings = report["strings"]
+    table = Table(title=f"Extracted strings: {len(strings)}")
+    for name in ("Index", "Offset", "Encoding", "Length", "Entropy", "Model score", "Model flag", "String"):
+        table.add_column(name)
+    for index, entry in enumerate(strings):
+        score = entry.get("model_score")
+        table.add_row(
+            str(index), hex(entry["offset"]), entry["encoding"], str(entry["length"]),
+            str(entry["entropy"]), f"{score:.4f}" if score is not None else "unavailable",
+            str(entry["model_suspicious"]) if "model_suspicious" in entry else "unavailable",
+            Text(entry["value"]),
+        )
+    console.print(table)
+    console.print("Model scores represent per-string suspiciousness, not readability or a file verdict.")
+    if report["status"] != "complete":
+        console.print("[bold yellow]Collection incomplete; see errors above.[/bold yellow]")

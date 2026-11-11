@@ -1,0 +1,74 @@
+name: Build Windows offline installer
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  installer:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Install build dependencies
+        shell: pwsh
+        run: |
+          python -m pip install . pyinstaller==6.11.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $compiler)) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Download and verify official UPX
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP "upx.zip"
+          Invoke-WebRequest "https://github.com/upx/upx/releases/download/v5.0.2/upx-5.0.2-win64.zip" -OutFile $archive
+          $expected = "1cff6d6ee01c404d4a1ae56003056bd4cfa28d0a5cea1d0950daaf872a4facc9"
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne $expected) {
+            throw "UPX archive SHA-256 does not match the official release."
+          }
+          Expand-Archive $archive -DestinationPath $env:RUNNER_TEMP
+      - name: Build installer
+        shell: pwsh
+        run: |
+          ./installer/windows/build.ps1 `
+            -UpxDirectory "$env:RUNNER_TEMP\upx-5.0.2-win64" `
+            -InnoCompiler "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+      - name: Test installed executable
+        shell: pwsh
+        run: |
+          $setup = Join-Path $PWD "dist\windows\AISA-Setup-x64.exe"
+          $destination = Join-Path $env:RUNNER_TEMP "AISA test install"
+          $originalPath = [Environment]::GetEnvironmentVariable("Path", "User")
+          $process = Start-Process -FilePath $setup -Wait -PassThru `
+            -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/TASKS=addtopath', "/DIR=`"$destination`"")
+          if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
+          try {
+            $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+            if ($destination -notin ($userPath -split ';')) { throw "Installer did not add AISA to PATH." }
+            python installer/windows/smoke_test.py "$destination\aisa.exe"
+            if ($LASTEXITCODE -ne 0) { throw "Installed executable failed its smoke test." }
+            & "$destination\upx\upx.exe" --version
+            if ($LASTEXITCODE -ne 0) { throw "Installed UPX failed its version check." }
+          } finally {
+            $uninstall = Start-Process -FilePath "$destination\unins000.exe" -Wait -PassThru `
+              -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART'
+            if ($uninstall.ExitCode -ne 0) { throw "Uninstall failed: $($uninstall.ExitCode)" }
+            $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+            if ($destination -in ($userPath -split ';')) { throw "Uninstall did not remove the AISA PATH entry." }
+            if (($originalPath -replace ';+$', '') -ne ($userPath -replace ';+$', '')) {
+              throw "Uninstall changed existing user PATH entries."
+            }
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AISA-Windows-x64-installer
+          path: dist/windows/AISA-Setup-x64.exe
+          if-no-files-found: error
