@@ -57,6 +57,17 @@ class TestStringCategories(unittest.TestCase):
         self.assertEqual([x["value"] for x in result["commands"]], ["cmd /c echo test"])
         self.assertEqual(len(result["urls"]), 2)
 
+    def test_domain_candidates_skip_filenames_and_registry_components(self):
+        strings = [
+            entry("%s\\32BitFtp.ini %s\\Accounts.tdat %s\\user.config", 0),
+            entry("Software\\9bis.com\\KiTTY\\Sessions", 50),
+            entry("Mozilla.org", 100),
+            entry("Fuckav.ru", 120),
+        ]
+        result = categorize_strings(strings)
+        self.assertEqual([item["value"] for item in result["domains"]],
+                         ["Fuckav.ru", "Mozilla.org"])
+
     def test_workflow_and_json_persist_categories_even_without_model(self):
         payload = b'\x00cmd.exe /c https://example.org/a.exe C:\\Temp\\file.exe\x00'
         with tempfile.TemporaryDirectory() as directory:

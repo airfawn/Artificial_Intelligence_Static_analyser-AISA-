@@ -24,7 +24,12 @@ COMMAND_PATTERN = re.compile(
     r"mshta(?:\.exe)?)(?![A-Za-z0-9_])",
     re.IGNORECASE,
 )
-FILE_EXTENSIONS = {"exe", "dll", "sys", "bat", "cmd", "ps1", "vbs", "scr"}
+NON_DOMAIN_SUFFIXES = {
+    "bat", "cfg", "conf", "config", "dat", "db", "dll", "doc", "docx", "ds", "exe",
+    "fsi", "ico", "ini", "js", "jsd", "json", "log", "pdf", "plist", "ps1",
+    "qfp", "scr", "smf", "sqlite", "sqlite3", "sys", "tmp", "txt", "vbs",
+    "xml", "yaml", "yml",
+}
 
 
 def categorize_strings(strings: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
@@ -73,7 +78,13 @@ def categorize_strings(strings: List[Dict[str, Any]]) -> Dict[str, List[Dict[str
         for match in DOMAIN_PATTERN.finditer(text):
             if any(match.start() < end and match.end() > start for start, end in url_spans + path_spans):
                 continue
-            if match.group().lower().rsplit(".", 1)[-1] in FILE_EXTENSIONS:
+            if match.group().lower().rsplit(".", 1)[-1] in NON_DOMAIN_SUFFIXES:
+                continue
+            # Registry keys and path components often contain dotted product names,
+            # which should not be reported as network domains.
+            if (match.start() > 0 and text[match.start() - 1] in "\\/") or (
+                match.end() < len(text) and text[match.end()] in "\\/"
+            ):
                 continue
             add("domains", match.group(), index, match.start(), match.end())
 
