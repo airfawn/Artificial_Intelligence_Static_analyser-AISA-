@@ -82,12 +82,17 @@ def analyze_file(file_path: str, min_string_len: int = 4) -> Dict[str, Any]:
         finish(original)
         return report
 
-    names = [section["name"].lower() for section in packing["sections"]]
-    is_upx = any(name.startswith(("upx0", "upx1", "upx2", ".upx")) for name in names)
-    if not is_upx:
+    packer = packing["packer"]
+    if packer["name"] != "UPX":
+        if packer["status"] == "ambiguous":
+            detail = "Multiple packer signatures detected"
+        elif packer["name"]:
+            detail = f"{packer['name']} packer detected but automatic unpacking is not supported"
+        else:
+            detail = "Unknown or unsupported packer"
         report["unpacking"] = {
             "status": "unsupported",
-            "message": "Unsupported packer; provide an unpacked file to collect strings and APIs.",
+            "message": f"{detail}; provide an unpacked file to collect strings and APIs.",
         }
         return report
 

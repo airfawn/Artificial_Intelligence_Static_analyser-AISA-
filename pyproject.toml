@@ -20,4 +20,4 @@ py-modules = ["main"]
 packages = ["core", "cli", "models"]
 
 [tool.setuptools.package-data]
-models = ["string_model_weights.json"]
+models = ["string_model_weights.json", "packing_model.json"]

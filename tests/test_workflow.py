@@ -106,7 +106,44 @@ class TestPackingFirstWorkflow(unittest.TestCase):
              patch("core.workflow.StringExtractor.extract_from_bytes", side_effect=AssertionError("strings extracted")):
             report = analyze_file(path)
         self.assertEqual(report["unpacking"]["status"], "unsupported")
+        self.assertEqual(report["pe_metadata"]["packing"]["packer"]["name"], "VMProtect")
+        self.assertIn("VMProtect", report["unpacking"]["message"])
         self.assertIsNone(report["strings"])
+
+    def test_ambiguous_packers_do_not_run_upx(self):
+        path = self.write_sample(self.packed.replace(b"UPX1", b".vmp1"))
+        with patch("core.workflow.subprocess.run", side_effect=AssertionError("UPX called")):
+            report = analyze_file(path)
+        self.assertEqual(report["pe_metadata"]["packing"]["packer"]["status"], "ambiguous")
+        self.assertEqual(report["unpacking"]["status"], "unsupported")
+        self.assertIsNone(report["strings"])
+
+    def test_aspack_and_mpress_signatures_gate_collection(self):
+        for section in (b".aspack", b".MPRESS1", b".MPRESS2"):
+            with self.subTest(section=section):
+                contents = bytearray(self.unpacked)
+                section_table = 0x80 + 4 + 20 + 0xe0
+                contents[section_table:section_table + 8] = section.ljust(8, b"\0")
+                path = self.write_sample(contents)
+                with patch("core.workflow.subprocess.run", side_effect=AssertionError("UPX called")), \
+                     patch("core.workflow.StringExtractor.extract_from_bytes", side_effect=AssertionError("strings extracted")):
+                    report = analyze_file(path)
+                expected = "ASPack" if section == b".aspack" else "MPRESS"
+                packing = report["pe_metadata"]["packing"]
+                self.assertEqual(packing["packer"]["name"], expected)
+                self.assertTrue(packing["is_packed"])
+                self.assertEqual(packing["weighted_score"]["score"], 0.4)
+                self.assertFalse(packing["weighted_score"]["above_threshold"])
+                self.assertEqual(report["unpacking"]["status"], "unsupported")
+                self.assertIn(expected, report["unpacking"]["message"])
+                self.assertIsNone(report["strings"])
+                self.assertIsNone(report["apis"])
+
+    def test_packing_model_is_reported_without_changing_collection(self):
+        report = analyze_file(self.write_sample(self.unpacked))
+        self.assertEqual(report["pe_metadata"]["packing"]["model"]["status"], "trained")
+        self.assertEqual(report["status"], "complete")
+        self.assertTrue(all("model_score" in item for item in report["strings"]))
 
     def test_upx_success_analyzes_output_without_changing_original(self):
         path = self.write_sample(self.packed)
@@ -260,6 +297,7 @@ class TestPackingFirstWorkflow(unittest.TestCase):
         report = analyze_file(str(packed))
         self.assertEqual(report["status"], "complete", report["unpacking"])
         self.assertEqual(report["unpacking"]["status"], "success")
+        self.assertEqual(report["pe_metadata"]["packing"]["model"]["prediction"]["label"], "UPX")
         self.assertEqual(report["analyzed_file"]["source"], "unpacked")
         self.assertFalse(report["analyzed_file"]["packing"]["is_packed"])
         self.assertGreater(len(report["strings"]), 0)

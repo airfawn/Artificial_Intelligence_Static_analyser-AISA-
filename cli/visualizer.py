@@ -37,6 +37,25 @@ def render_report(report: Dict[str, Any]) -> None:
     )
     details = "\n".join([f"{status} (confidence: {packing['confidence']})"] + packing["reasons"])
     console.print(Panel(Text(details), title="Packing assessment"))
+    packer = packing["packer"]
+    names = ", ".join(match["name"] for match in packer["matches"])
+    identity = packer["name"] or (f"Ambiguous: {names}" if names else "Unknown")
+    prediction = packing["model"].get("prediction")
+    model_detail = (
+        f"\nPrediction: {prediction['label']} (centroid distance: {prediction['distance']:.4f})"
+        if prediction else ""
+    )
+    console.print(Panel(Text(
+        f"Section-name identification: {identity}\n"
+        f"Packing model: {packing['model']['status']} — {packing['model']['message']}{model_detail}"
+    ), title="Packer identification"))
+    weighted = packing["weighted_score"]
+    score = weighted["score"]
+    score_detail = (
+        f"{score:.2f} (above {weighted['threshold']}: {weighted['above_threshold']})"
+        if score is not None else "unavailable"
+    )
+    console.print(Panel(Text(f"{score_detail}\n{weighted['message']}"), title="Experimental packing score"))
     if packing["sections"]:
         sections = Table(title="PE sections")
         for column in ("Name", "Virtual size", "Disk size", "Delta", "Ratio", "Entropy", "Indicators"):

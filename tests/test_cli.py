@@ -53,6 +53,18 @@ class TestCLI(unittest.TestCase):
                 result = self.run_cli(*args)
                 self.assertEqual(result.returncode, 2)
 
+    def test_analysis_options_are_validated(self):
+        output = Path(self.directory.name) / "analysis.json"
+        for args in (
+            ("--analyze-report", self.path),
+            ("--analysis-output", output),
+            ("--analyze-report", self.path, "--analysis-output", output, "-f", self.path),
+            ("--analyze-report", self.path, "--analysis-output", output, "--min-len", "8"),
+        ):
+            with self.subTest(args=args):
+                result = self.run_cli(*args)
+                self.assertEqual(result.returncode, 2, result.stderr)
+
     def test_incomplete_report_is_saved(self):
         self.path.write_bytes(b"not a PE")
         destination = Path(self.directory.name) / "partial.json"

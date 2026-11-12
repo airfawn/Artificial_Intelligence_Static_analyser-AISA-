@@ -15,6 +15,9 @@ import hashlib
 import struct
 from typing import Dict, Any, List, Optional
 import pefile
+from .packer_signatures import identify_packer
+from .packing_score import assess_packing_score
+from .packing_model import assess_packing
 
 # ---------------------------------------------------------------------------
 # Download APIs that pull remote payloads to disk or into memory
@@ -121,10 +124,13 @@ class PEAnalyzer:
                 "reason": "Not a valid Windows PE binary",
                 "reasons": ["Not a valid Windows PE binary"],
                 "sections": [],
+                "packer": identify_packer([]),
+                "model": {"status": "not_available", "message": "Input is not a valid PE."},
+                "weighted_score": assess_packing_score([]),
             }
 
         known_packer_sections = {
-            "UPX0", "UPX1", "UPX2", ".upx", ".aspack", ".adata", ".fsg", ".themida",
+            "UPX0", "UPX1", "UPX2", ".upx", ".aspack", ".adata", ".mpress1", ".mpress2", ".fsg", ".themida",
             ".vmp0", ".vmp1", "pec1", "pec2", ".nsp0", ".packer", "MEW", ".enigma"
         }
 
@@ -212,7 +218,7 @@ class PEAnalyzer:
             is_packed = True
             confidence = "Medium"
 
-        return {
+        packing = {
             "is_packed": is_packed,
             "confidence": confidence,
             "reasons": reasons if reasons else ["Standard section geometry and entropy observed"],
@@ -220,6 +226,10 @@ class PEAnalyzer:
             "high_entropy_count": high_entropy_sections,
             "total_sections": total_sections,
         }
+        packing["packer"] = identify_packer(suspicious_sections)
+        packing["model"] = assess_packing(packing)
+        packing["weighted_score"] = assess_packing_score(suspicious_sections)
+        return packing
 
     # ------------------------------------------------------------------
     # DROPPER DETECTION

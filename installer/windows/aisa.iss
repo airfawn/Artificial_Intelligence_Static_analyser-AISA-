@@ -19,6 +19,8 @@ OutputDir={#OutputDir}
 OutputBaseFilename=AISA-Setup-x64
 Compression=lzma2
 SolidCompression=yes
+DiskSpanning=yes
+DiskSliceSize=2000000000
 UninstallDisplayName=AISA Static Analysis
 
 [Tasks]

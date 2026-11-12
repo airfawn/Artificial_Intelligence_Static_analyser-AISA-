@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "features": [
+    "section_count",
+    "high_entropy_fraction",
+    "max_entropy",
+    "suspicious_geometry_fraction",
+    "zero_raw_fraction"
+  ],
+  "centroids": {
+    "unpacked": {
+      "section_count": 0.3671875,
+      "high_entropy_fraction": 0.0,
+      "max_entropy": 0.790996875,
+      "suspicious_geometry_fraction": 0.020833333333333332,
+      "zero_raw_fraction": 0.0
+    },
+    "UPX": {
+      "section_count": 0.1875,
+      "high_entropy_fraction": 0.3333333333333333,
+      "max_entropy": 0.97926328125,
+      "suspicious_geometry_fraction": 0.3333333333333333,
+      "zero_raw_fraction": 0.3333333333333333
+    }
+  }
+}

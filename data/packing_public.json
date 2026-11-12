@@ -1,0 +1,827 @@
+{
+  "version": 1,
+  "source": "Pinned PyPI Windows wheels and UPX-packed copies",
+  "upx_version": "upx 5.3.0",
+  "limitations": "UPX versus packable public Windows wheel binaries only. Negative examples are assumed unpacked; they are not independently certified against other packers. The split is by PyPI project, not verified independent code lineage. Other packers, malware, signed binaries and other architectures are not represented.",
+  "sources": [
+    {
+      "project": "psutil",
+      "version": "7.2.2",
+      "split": "train",
+      "metadata_url": "https://pypi.org/pypi/psutil/7.2.2/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/b4/90/e2159492b5426be0c1fef7acba807a03511f97c5f86b3caeda6ad92351a7/psutil-7.2.2-cp37-abi3-win_amd64.whl",
+      "wheel_filename": "psutil-7.2.2-cp37-abi3-win_amd64.whl",
+      "wheel_sha256": "eb7e81434c8d223ec4a219b5fc1c47d0417b12be7ea866e24fb5ad6e84b3d988"
+    },
+    {
+      "project": "bcrypt",
+      "version": "5.0.0",
+      "split": "train",
+      "metadata_url": "https://pypi.org/pypi/bcrypt/5.0.0/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/41/aa/4190e60921927b7056820291f56fc57d00d04757c8b316b2d3c0d1d6da2c/bcrypt-5.0.0-cp38-abi3-win_amd64.whl",
+      "wheel_filename": "bcrypt-5.0.0-cp38-abi3-win_amd64.whl",
+      "wheel_sha256": "35a77ec55b541e5e583eb3436ffbbf53b0ffa1fa16ca6782279daf95d146dcd9"
+    },
+    {
+      "project": "pyyaml",
+      "version": "6.0.3",
+      "split": "train",
+      "metadata_url": "https://pypi.org/pypi/pyyaml/6.0.3/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/da/e3/ea007450a105ae919a72393cb06f122f288ef60bba2dc64b26e2646fa315/pyyaml-6.0.3-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "pyyaml-6.0.3-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "9f3bfb4965eb874431221a3ff3fdcddc7e74e3b07799e0e84ca4a0f867d449bf"
+    },
+    {
+      "project": "pillow",
+      "version": "13.0.0",
+      "split": "train",
+      "metadata_url": "https://pypi.org/pypi/pillow/13.0.0/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/7d/f6/6e2d96413e4c9dbec12ea584d9e646d602877d4cce3ea669099f959deac6/pillow-13.0.0-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "pillow-13.0.0-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "d7710eb676e9bb68965cb045be0d333b4c0d7f9dfbaa7fbf121385b1588683d3"
+    },
+    {
+      "project": "markupsafe",
+      "version": "3.0.4",
+      "split": "train",
+      "metadata_url": "https://pypi.org/pypi/markupsafe/3.0.4/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/91/89/f2b509f7bf79352e40117824c1070dbeafd4df67031d3fa98165a3134228/markupsafe-3.0.4-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "markupsafe-3.0.4-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "fdb4ca07ab75ffadab4a8b135ad59cdbb3156b99310f3d565370da74a15d6bd3"
+    },
+    {
+      "project": "charset-normalizer",
+      "version": "3.5.2",
+      "split": "train",
+      "metadata_url": "https://pypi.org/pypi/charset-normalizer/3.5.2/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/e8/fc/fdf8cf52ff21cd5bf158f20978991cf985325842f74283eb6df26c8a39d8/charset_normalizer-3.5.2-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "charset_normalizer-3.5.2-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "87e50a3e7cb90af586b6c5faf23e302a970415ac73bd7bd90a515a04b427ef96"
+    },
+    {
+      "project": "cffi",
+      "version": "2.1.1",
+      "split": "train",
+      "metadata_url": "https://pypi.org/pypi/cffi/2.1.1/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/73/c0/77ba02423c2f7d7091143c45cd49e0e6575c4c1967394bb542bd923a9b74/cffi-2.1.1-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "cffi-2.1.1-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "42f6930c31dc7f50732c9ae793c2786c7b6b044195967bbdde40bb9be81c4cc0"
+    },
+    {
+      "project": "zstandard",
+      "version": "0.25.0",
+      "split": "train",
+      "metadata_url": "https://pypi.org/pypi/zstandard/0.25.0/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/43/a3/c6155f5c1cce691cb80dfd38627046e50af3ee9ddc5d0b45b9b063bfb8c9/zstandard-0.25.0-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "zstandard-0.25.0-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "daab68faadb847063d0c56f361a289c4f268706b598afbf9ad113cbe5c38b6b2"
+    },
+    {
+      "project": "orjson",
+      "version": "3.13.0",
+      "split": "train",
+      "metadata_url": "https://pypi.org/pypi/orjson/3.13.0/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/af/cf/be64b99ff75f7983488390d4ef5df72115119770eed295691c0a715d492a/orjson-3.13.0-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "orjson-3.13.0-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "a0377d6962fa431c93ecd78fdea771bb62ec545b24ee0c5d4e32acf2260af259"
+    },
+    {
+      "project": "multidict",
+      "version": "7.2.1",
+      "split": "train",
+      "metadata_url": "https://pypi.org/pypi/multidict/7.2.1/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/1f/02/41d769148f32c9bd535fd0ddd946c4e42f38acaddf7899f3bf49d9e67703/multidict-7.2.1-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "multidict-7.2.1-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "a789e3d27fc5665cc0477f10a35a89383313e4c9cf8b5e6af7ea71f039cdcc0e"
+    },
+    {
+      "project": "lxml",
+      "version": "6.1.3",
+      "split": "test",
+      "metadata_url": "https://pypi.org/pypi/lxml/6.1.3/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/45/5a/15531a0d307c96282fe8b639b3d74e8bd783e4ab4cb2b0781146ac4161b8/lxml-6.1.3-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "lxml-6.1.3-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "7ae4949f212a53b007dbc355884fda122545c5764a54256c9217e419a62a6559"
+    },
+    {
+      "project": "pyzmq",
+      "version": "27.3.0",
+      "split": "test",
+      "metadata_url": "https://pypi.org/pypi/pyzmq/27.3.0/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/9e/3b/d3f6c6a3d46781f723ceb90fdfafe403fbcc5494b440e70c37c60e3acfdc/pyzmq-27.3.0-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "pyzmq-27.3.0-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "df98c790f86b6aa2378b4bb94dec7b85b0adb195b880b41e429a4990aed2a8c9"
+    },
+    {
+      "project": "regex",
+      "version": "2026.11.9",
+      "split": "test",
+      "metadata_url": "https://pypi.org/pypi/regex/2026.11.9/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/b5/6a/c23207465db6bb7a98211e82e5f79dc5473abea56464960f1c705bda888a/regex-2026.11.9-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "regex-2026.11.9-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "b75ea29155c988eb375325a9fd9270a550ea3427acf275d350538c5f83571abc"
+    },
+    {
+      "project": "pydantic-core",
+      "version": "2.50.4",
+      "split": "test",
+      "metadata_url": "https://pypi.org/pypi/pydantic-core/2.50.4/json",
+      "wheel_url": "https://files.pythonhosted.org/packages/c6/06/cebeeb7a8e87b42a3d8bc189d0d400e47df5d1736cb326764bae8a74c433/pydantic_core-2.50.4-cp311-cp311-win_amd64.whl",
+      "wheel_filename": "pydantic_core-2.50.4-cp311-cp311-win_amd64.whl",
+      "wheel_sha256": "15bece43a02ad543c621c8305e67dedb5f27d378c5ba741e5a2c36523f8ef37f"
+    }
+  ],
+  "rejected": [],
+  "samples": [
+    {
+      "project": "psutil",
+      "member": "psutil/_psutil_windows.pyd",
+      "group_sha256": "0035450801bd7d938e9e146c5ec28e619cb5a5f4a18cdc53ac7e9734c7f94f78",
+      "sha256": "0035450801bd7d938e9e146c5ec28e619cb5a5f4a18cdc53ac7e9734c7f94f78",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.754975,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "psutil",
+      "member": "psutil/_psutil_windows.pyd",
+      "group_sha256": "0035450801bd7d938e9e146c5ec28e619cb5a5f4a18cdc53ac7e9734c7f94f78",
+      "sha256": "05d4582506de3526f885b508fbcb63c43ec5da36afee58e57b3ab7b1fef5fb43",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9798125,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "bcrypt",
+      "member": "bcrypt/_bcrypt.pyd",
+      "group_sha256": "7cbbc029ea5f979dcf1150ab5ca1209900ead8da42fe55d2a72c0926257764c8",
+      "sha256": "7cbbc029ea5f979dcf1150ab5ca1209900ead8da42fe55d2a72c0926257764c8",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.3125,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.7985125,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "bcrypt",
+      "member": "bcrypt/_bcrypt.pyd",
+      "group_sha256": "7cbbc029ea5f979dcf1150ab5ca1209900ead8da42fe55d2a72c0926257764c8",
+      "sha256": "28a1d9d31cfac730b78c8c4241eb95db03f10f040932472bd7dafea0bc9547d8",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.986525,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "pyyaml",
+      "member": "yaml/_yaml.cp311-win_amd64.pyd",
+      "group_sha256": "ee7df83fa5dca1467bfd841dc08189b10361f31700cf57a6aacddaf0c05706f4",
+      "sha256": "ee7df83fa5dca1467bfd841dc08189b10361f31700cf57a6aacddaf0c05706f4",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.7736375,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "pyyaml",
+      "member": "yaml/_yaml.cp311-win_amd64.pyd",
+      "group_sha256": "ee7df83fa5dca1467bfd841dc08189b10361f31700cf57a6aacddaf0c05706f4",
+      "sha256": "1b1deccf00a6bfd3844b339c5396120abc5aab9193dc7d95984cc83ca1b52eda",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9887875,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "pillow",
+      "member": "PIL/_avif.cp311-win_amd64.pyd",
+      "group_sha256": "93d18fd6e9170db341560cc3b3909e01346fcaad6ac26128bb8fafca65b4c546",
+      "sha256": "93d18fd6e9170db341560cc3b3909e01346fcaad6ac26128bb8fafca65b4c546",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.8551125,
+        "suspicious_geometry_fraction": 0.16666666666666666,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "pillow",
+      "member": "PIL/_avif.cp311-win_amd64.pyd",
+      "group_sha256": "93d18fd6e9170db341560cc3b3909e01346fcaad6ac26128bb8fafca65b4c546",
+      "sha256": "ac9a57ed69dfd4921f7dcb410b2b3305e552f8509a3b037e73724525d8322a74",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.990275,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "pillow",
+      "member": "PIL/_imaging.cp311-win_amd64.pyd",
+      "group_sha256": "1ead5ef5fb2b0b40d5a92c4baa5e4e111b187e9f9f4e895a1ab8cea8e12318f2",
+      "sha256": "1ead5ef5fb2b0b40d5a92c4baa5e4e111b187e9f9f4e895a1ab8cea8e12318f2",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.822975,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "pillow",
+      "member": "PIL/_imaging.cp311-win_amd64.pyd",
+      "group_sha256": "1ead5ef5fb2b0b40d5a92c4baa5e4e111b187e9f9f4e895a1ab8cea8e12318f2",
+      "sha256": "1f564ee5a661b0fc6acbda4027ef53ab2857cee23a8ffa009f131d3457e0754f",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9880125,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "pillow",
+      "member": "PIL/_imagingcms.cp311-win_amd64.pyd",
+      "group_sha256": "6b2b71a29b684727c100cbe2810a69cde03d32fd489150f90ef7ca155556a5fe",
+      "sha256": "6b2b71a29b684727c100cbe2810a69cde03d32fd489150f90ef7ca155556a5fe",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.80705,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "pillow",
+      "member": "PIL/_imagingcms.cp311-win_amd64.pyd",
+      "group_sha256": "6b2b71a29b684727c100cbe2810a69cde03d32fd489150f90ef7ca155556a5fe",
+      "sha256": "d2103a723299cc951e39e7b7af3bba0f4f4d8acb578d1fac08899fb4785811d7",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9860625,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "pillow",
+      "member": "PIL/_imagingft.cp311-win_amd64.pyd",
+      "group_sha256": "6661a925b55bc9c0465699a64327b3b7602d1b04391caf5ab88efa77e8569838",
+      "sha256": "6661a925b55bc9c0465699a64327b3b7602d1b04391caf5ab88efa77e8569838",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.8206875,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "pillow",
+      "member": "PIL/_imagingft.cp311-win_amd64.pyd",
+      "group_sha256": "6661a925b55bc9c0465699a64327b3b7602d1b04391caf5ab88efa77e8569838",
+      "sha256": "08ed987d07c352dbd7b61682e7e7b6f2f6ffd60f16fe319784b50247c965c611",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9876125,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "markupsafe",
+      "member": "markupsafe/_speedups.cp311-win_amd64.pyd",
+      "group_sha256": "79d6891d23e7bb5acfae0ab87b2c8d59431450724999e9cfc3deb8877e1f4cb9",
+      "sha256": "79d6891d23e7bb5acfae0ab87b2c8d59431450724999e9cfc3deb8877e1f4cb9",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.7293375,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "markupsafe",
+      "member": "markupsafe/_speedups.cp311-win_amd64.pyd",
+      "group_sha256": "79d6891d23e7bb5acfae0ab87b2c8d59431450724999e9cfc3deb8877e1f4cb9",
+      "sha256": "e34dadfa8d3284e546b192061269f5dc268e4c892d1375f7d39ad7b647bc2e61",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.93835,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "charset-normalizer",
+      "member": "charset_normalizer/cd.cp311-win_amd64.pyd",
+      "group_sha256": "71f058fba64042b52ffa94a5637e57208fa9a3e027be2ea8ed2ddb3ce8ea462f",
+      "sha256": "71f058fba64042b52ffa94a5637e57208fa9a3e027be2ea8ed2ddb3ce8ea462f",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.7682,
+        "suspicious_geometry_fraction": 0.16666666666666666,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "charset-normalizer",
+      "member": "charset_normalizer/cd.cp311-win_amd64.pyd",
+      "group_sha256": "71f058fba64042b52ffa94a5637e57208fa9a3e027be2ea8ed2ddb3ce8ea462f",
+      "sha256": "a76fe6cddb3a9bdf0aa8146218f770248de03d61c04afd0abae4ad808d995999",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9834875,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "charset-normalizer",
+      "member": "charset_normalizer/md.cp311-win_amd64.pyd",
+      "group_sha256": "d5c25e49d631c6160db27f126ba83c4621212a9be45c9f5c0a2ddc415692c945",
+      "sha256": "d5c25e49d631c6160db27f126ba83c4621212a9be45c9f5c0a2ddc415692c945",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.766025,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "charset-normalizer",
+      "member": "charset_normalizer/md.cp311-win_amd64.pyd",
+      "group_sha256": "d5c25e49d631c6160db27f126ba83c4621212a9be45c9f5c0a2ddc415692c945",
+      "sha256": "cb49d9b7dfe24ab96d38b1de471631e0c8f7028ed592e17f4b004ce3fcccbaa3",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.98445,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "cffi",
+      "member": "_cffi_backend.cp311-win_amd64.pyd",
+      "group_sha256": "0b5c05bf3e9da14c33566d2c546fb7618ac7fc2b89365a66cfb1082ffe3d898d",
+      "sha256": "0b5c05bf3e9da14c33566d2c546fb7618ac7fc2b89365a66cfb1082ffe3d898d",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.7928125,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "cffi",
+      "member": "_cffi_backend.cp311-win_amd64.pyd",
+      "group_sha256": "0b5c05bf3e9da14c33566d2c546fb7618ac7fc2b89365a66cfb1082ffe3d898d",
+      "sha256": "67bdab66f42f2f2b2807561708bc25d0d7ced3773d2542a899d51f62a0d70857",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9829375,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "zstandard",
+      "member": "zstandard/_cffi.cp311-win_amd64.pyd",
+      "group_sha256": "f6b7450a953cc6f0facd89992d1d15b22b94f78342a4cf59f15142f71f8dbe46",
+      "sha256": "f6b7450a953cc6f0facd89992d1d15b22b94f78342a4cf59f15142f71f8dbe46",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.7988625,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "zstandard",
+      "member": "zstandard/_cffi.cp311-win_amd64.pyd",
+      "group_sha256": "f6b7450a953cc6f0facd89992d1d15b22b94f78342a4cf59f15142f71f8dbe46",
+      "sha256": "d8f23fb473068e5e39e83d50aaf71b71e31eb3d32cbc3f00e8ade180be83062a",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.987175,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "zstandard",
+      "member": "zstandard/backend_c.cp311-win_amd64.pyd",
+      "group_sha256": "35f7bfe8d1965fc33c090febd216a4ef5c3a8b22ce02a689226a3776cc295317",
+      "sha256": "35f7bfe8d1965fc33c090febd216a4ef5c3a8b22ce02a689226a3776cc295317",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.7984625,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "zstandard",
+      "member": "zstandard/backend_c.cp311-win_amd64.pyd",
+      "group_sha256": "35f7bfe8d1965fc33c090febd216a4ef5c3a8b22ce02a689226a3776cc295317",
+      "sha256": "3348a32b05ad5a866f460580aea57e68c3875b261678fd2076bedfd638eae307",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9870125,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "orjson",
+      "member": "orjson/orjson.cp311-win_amd64.pyd",
+      "group_sha256": "947606ff10516f290ca3f8a3dd6077510a2ac7845161369fbc197ff3750a3c5b",
+      "sha256": "947606ff10516f290ca3f8a3dd6077510a2ac7845161369fbc197ff3750a3c5b",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.3125,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.86225,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "orjson",
+      "member": "orjson/orjson.cp311-win_amd64.pyd",
+      "group_sha256": "947606ff10516f290ca3f8a3dd6077510a2ac7845161369fbc197ff3750a3c5b",
+      "sha256": "cd314072647fbae498095bc8c56010d41b83cfd97535f91bfbd3cdfe1f484117",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.98595,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "multidict",
+      "member": "multidict/_multidict.cp311-win_amd64.pyd",
+      "group_sha256": "fe92c3c2760442c116f0129c012d81eea45d405ff177f3304699c3f0c2d61190",
+      "sha256": "fe92c3c2760442c116f0129c012d81eea45d405ff177f3304699c3f0c2d61190",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.7894125,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "multidict",
+      "member": "multidict/_multidict.cp311-win_amd64.pyd",
+      "group_sha256": "fe92c3c2760442c116f0129c012d81eea45d405ff177f3304699c3f0c2d61190",
+      "sha256": "5cb7f837b045caef704e67affead77bb59fecc505dc7d8f513fc6fffe3b5147d",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9807625,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "multidict",
+      "member": "multidict/_testcapi.cp311-win_amd64.pyd",
+      "group_sha256": "ac950783723909ddd196447af524c4809fabbf1e95a9f3cfa58f20f8be353cf1",
+      "sha256": "ac950783723909ddd196447af524c4809fabbf1e95a9f3cfa58f20f8be353cf1",
+      "split": "train",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.7176375,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "multidict",
+      "member": "multidict/_testcapi.cp311-win_amd64.pyd",
+      "group_sha256": "ac950783723909ddd196447af524c4809fabbf1e95a9f3cfa58f20f8be353cf1",
+      "sha256": "a4e8842ffb13145ce33bc65958b1e01a7aa4274ccb9c23fa0d7edbdad8ce20eb",
+      "split": "train",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.931,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "lxml",
+      "member": "lxml/_elementpath.cp311-win_amd64.pyd",
+      "group_sha256": "2afcd8b4272d9ed94be40b31d112012e578f77b7bab01d7f0735d1ae5ebc166e",
+      "sha256": "2afcd8b4272d9ed94be40b31d112012e578f77b7bab01d7f0735d1ae5ebc166e",
+      "split": "test",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.761625,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "lxml",
+      "member": "lxml/_elementpath.cp311-win_amd64.pyd",
+      "group_sha256": "2afcd8b4272d9ed94be40b31d112012e578f77b7bab01d7f0735d1ae5ebc166e",
+      "sha256": "eb2b3e493567ff2da27ff7b62e62fa00f4b121d59c71a0d19787b1afb56dfacd",
+      "split": "test",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9855,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "lxml",
+      "member": "lxml/builder.cp311-win_amd64.pyd",
+      "group_sha256": "7ce0b56a67c366188a43958b13a72dfe2d69fe2573131177b446c4dbf9a555ad",
+      "sha256": "7ce0b56a67c366188a43958b13a72dfe2d69fe2573131177b446c4dbf9a555ad",
+      "split": "test",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.754325,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "lxml",
+      "member": "lxml/builder.cp311-win_amd64.pyd",
+      "group_sha256": "7ce0b56a67c366188a43958b13a72dfe2d69fe2573131177b446c4dbf9a555ad",
+      "sha256": "58f60211f8c2c1313bd8dcd1a799f1779063ba82d7490a32bdcec2c6b6b606f7",
+      "split": "test",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9847625,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "lxml",
+      "member": "lxml/etree.cp311-win_amd64.pyd",
+      "group_sha256": "2e4af374a880041b8b89c5782a7653700ec5ac2c8b4ff7da7c239e6bd9d7c5bd",
+      "sha256": "2e4af374a880041b8b89c5782a7653700ec5ac2c8b4ff7da7c239e6bd9d7c5bd",
+      "split": "test",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.16666666666666666,
+        "max_entropy": 0.88035,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "lxml",
+      "member": "lxml/etree.cp311-win_amd64.pyd",
+      "group_sha256": "2e4af374a880041b8b89c5782a7653700ec5ac2c8b4ff7da7c239e6bd9d7c5bd",
+      "sha256": "039b5b585825ebd7f973d9391214cb0dab2bc17ea8518dfd970acc3bbc0440f2",
+      "split": "test",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9902625,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "lxml",
+      "member": "lxml/html/_difflib.cp311-win_amd64.pyd",
+      "group_sha256": "025303efe9e1f482871b6788920a527db879c9074e43a48d4d8386f37dc0fe5c",
+      "sha256": "025303efe9e1f482871b6788920a527db879c9074e43a48d4d8386f37dc0fe5c",
+      "split": "test",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.764075,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "lxml",
+      "member": "lxml/html/_difflib.cp311-win_amd64.pyd",
+      "group_sha256": "025303efe9e1f482871b6788920a527db879c9074e43a48d4d8386f37dc0fe5c",
+      "sha256": "a795c5665241f4b2910677b989f0dbd31e2920bf3bd76e59d3c262362f0e2bbb",
+      "split": "test",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9899,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "pyzmq",
+      "member": "zmq/backend/cython/_zmq.cp311-win_amd64.pyd",
+      "group_sha256": "c7deeb1f80528d70647b2e134d5959c2bc0fb32e221fa0bf0860df267e47b743",
+      "sha256": "c7deeb1f80528d70647b2e134d5959c2bc0fb32e221fa0bf0860df267e47b743",
+      "split": "test",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.4375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.8117375,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "pyzmq",
+      "member": "zmq/backend/cython/_zmq.cp311-win_amd64.pyd",
+      "group_sha256": "c7deeb1f80528d70647b2e134d5959c2bc0fb32e221fa0bf0860df267e47b743",
+      "sha256": "1e5a4a471d381964be8c00883453819fbdafe39c8b5c7a93edd7f5c975bc3d5b",
+      "split": "test",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9882125,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "regex",
+      "member": "regex/_regex.cp311-win_amd64.pyd",
+      "group_sha256": "2b87bf2daf76ab9ae455731c84a531b3c67cffc4399211ad3abf44bf17d00ab6",
+      "sha256": "2b87bf2daf76ab9ae455731c84a531b3c67cffc4399211ad3abf44bf17d00ab6",
+      "split": "test",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.375,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.79625,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "regex",
+      "member": "regex/_regex.cp311-win_amd64.pyd",
+      "group_sha256": "2b87bf2daf76ab9ae455731c84a531b3c67cffc4399211ad3abf44bf17d00ab6",
+      "sha256": "de7d09ae066f2ff51d99f15fd64dd7c8735a5256b8d066394dc0433f97d7b89c",
+      "split": "test",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.9783375,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    },
+    {
+      "project": "pydantic-core",
+      "member": "pydantic_core/_pydantic_core.cp311-win_amd64.pyd",
+      "group_sha256": "ebb4eb03447504f639a3cd1d143d4113b5adffef00d27a5fd195ebf8395a7962",
+      "sha256": "ebb4eb03447504f639a3cd1d143d4113b5adffef00d27a5fd195ebf8395a7962",
+      "split": "test",
+      "label": "unpacked",
+      "features": {
+        "section_count": 0.3125,
+        "high_entropy_fraction": 0.0,
+        "max_entropy": 0.805825,
+        "suspicious_geometry_fraction": 0.0,
+        "zero_raw_fraction": 0.0
+      }
+    },
+    {
+      "project": "pydantic-core",
+      "member": "pydantic_core/_pydantic_core.cp311-win_amd64.pyd",
+      "group_sha256": "ebb4eb03447504f639a3cd1d143d4113b5adffef00d27a5fd195ebf8395a7962",
+      "sha256": "f1b90a45dca7c32522ced70e3758f97e24c474afa9b52d889062ddeb23c22a74",
+      "split": "test",
+      "label": "UPX",
+      "features": {
+        "section_count": 0.1875,
+        "high_entropy_fraction": 0.3333333333333333,
+        "max_entropy": 0.987475,
+        "suspicious_geometry_fraction": 0.3333333333333333,
+        "zero_raw_fraction": 0.3333333333333333
+      }
+    }
+  ]
+}

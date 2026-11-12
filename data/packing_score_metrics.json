@@ -1,0 +1,18 @@
+{
+  "threshold": 0.6,
+  "comparison": "strictly greater than",
+  "test_samples": 14,
+  "correct": 14,
+  "accuracy": 1.0,
+  "confusion_matrix": {
+    "UPX": {
+      "above": 7,
+      "not_above": 0
+    },
+    "unpacked": {
+      "above": 0,
+      "not_above": 7
+    }
+  },
+  "limitations": "UPX versus packable public Windows wheel binaries only. Negative examples are assumed unpacked; they are not independently certified against other packers. The split is by PyPI project, not verified independent code lineage. Other packers, malware, signed binaries and other architectures are not represented. This split was used for earlier model evaluation; it is not a fresh independent test of the overall workflow."
+}

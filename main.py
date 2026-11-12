@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from core.behavior_analysis import main as behavior_main
 from core.workflow import analyze_file
 from cli import render_report
 
@@ -49,9 +50,19 @@ def main():
     parser.add_argument("-m", "--min-len", type=int, default=4, help="Minimum string length (default: 4)")
     parser.add_argument("-s", "--save", "-j", "--json", dest="json", type=str, default=None,
                         help="Save JSON report to a new file (default: beside input)")
+    parser.add_argument("--analyze-report", help="Run experimental local AI analysis on an existing report")
+    parser.add_argument("--analysis-output", help="New output JSON path for --analyze-report")
 
     args = parser.parse_args()
 
+    if args.analyze_report:
+        if args.file or args.file_option or args.json or args.min_len != 4:
+            parser.error("--analyze-report cannot be combined with PE collection options")
+        if not args.analysis_output:
+            parser.error("--analyze-report requires --analysis-output")
+        return behavior_main([args.analyze_report, "--output", args.analysis_output])
+    if args.analysis_output:
+        parser.error("--analysis-output requires --analyze-report")
     if args.file and args.file_option:
         parser.error("provide the input file either positionally or with -f, not both")
     file_path = args.file_option or args.file

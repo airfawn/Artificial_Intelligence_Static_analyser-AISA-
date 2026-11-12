@@ -1,0 +1,17 @@
+{
+  "train_samples": 32,
+  "test_samples": 14,
+  "correct": 14,
+  "accuracy": 1.0,
+  "confusion_matrix": {
+    "UPX": {
+      "UPX": 7,
+      "unpacked": 0
+    },
+    "unpacked": {
+      "UPX": 0,
+      "unpacked": 7
+    }
+  },
+  "limitations": "UPX versus packable public Windows wheel binaries only. Negative examples are assumed unpacked; they are not independently certified against other packers. The split is by PyPI project, not verified independent code lineage. Other packers, malware, signed binaries and other architectures are not represented."
+}

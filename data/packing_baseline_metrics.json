@@ -1,0 +1,17 @@
+{
+  "train_samples": 4,
+  "test_samples": 4,
+  "correct": 4,
+  "accuracy": 1.0,
+  "confusion_matrix": {
+    "UPX": {
+      "UPX": 2,
+      "unpacked": 0
+    },
+    "unpacked": {
+      "UPX": 0,
+      "unpacked": 2
+    }
+  },
+  "limitations": "Four related launchers; test files are related to training files. No other packers or independent executable families."
+}
