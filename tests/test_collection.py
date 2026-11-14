@@ -12,47 +12,7 @@ from cli.visualizer import render_report
 from core.string_extractor import StringExtractor
 from core.workflow import analyze_file
 from main import analyze_target
-from samples.create_sample import build_minimal_pe
-
-
-def build_api_fixture():
-    """Create a PE32 fixture with named and ordinal imports, delay imports, and exports."""
-    data = bytearray(build_minimal_pe(packed=False))
-    data.extend(b"\0" * max(0, 0x1800 - len(data)))
-    base = 0x800
-    rva = 0x2000
-    directories = 0x80 + 4 + 20 + 96
-
-    def directory(index, offset, size):
-        struct.pack_into("<II", data, directories + index * 8, rva + offset, size)
-
-    def put(offset, value):
-        data[base + offset:base + offset + len(value)] = value
-
-    directory(1, 0x100, 40)
-    put(0x100, struct.pack("<IIIII", rva + 0x180, 0, 0, rva + 0x170, rva + 0x180))
-    put(0x170, b"KERNEL32.dll\0")
-    put(0x180, struct.pack("<III", rva + 0x1a0, 0x80000007, 0))
-    put(0x1a0, b"\x05\x00CreateFileW\0")
-
-    directory(13, 0x200, 64)
-    put(0x200, struct.pack("<IIIIIIII", 1, rva + 0x270, 0, rva + 0x280, rva + 0x280, 0, 0, 0))
-    put(0x270, b"USER32.dll\0")
-    put(0x280, struct.pack("<III", rva + 0x2a0, 0x80000009, 0))
-    put(0x2a0, b"\x03\x00MessageBoxW\0")
-
-    directory(0, 0x300, 0x100)
-    put(0x300, struct.pack(
-        "<IIHHIIIIIII", 0, 0, 0, 0, rva + 0x370, 1, 2, 1,
-        rva + 0x380, rva + 0x390, rva + 0x3a0,
-    ))
-    put(0x370, b"sample.dll\0")
-    put(0x380, struct.pack("<II", 0x1000, rva + 0x3d0))
-    put(0x390, struct.pack("<I", rva + 0x3b0))
-    put(0x3a0, struct.pack("<H", 0))
-    put(0x3b0, b"ExportedFunction\0")
-    put(0x3d0, b"OTHER.Forwarded\0")
-    return bytes(data)
+from samples.create_sample import build_api_fixture, build_minimal_pe
 
 
 class TestModuleOneCollection(unittest.TestCase):
@@ -87,6 +47,25 @@ class TestModuleOneCollection(unittest.TestCase):
         self.assertEqual([s["value"] for s in actual], [s["value"] for s in expected])
         self.assertEqual(sum(s["value"] == "bad allocation" for s in actual), 2)
         self.assertTrue(all("entropy" in item and "model_score" in item for item in actual))
+
+    def test_packed_file_retains_original_imports_and_exports(self):
+        data = bytearray(build_api_fixture())
+        section_table = 0x80 + 4 + 20 + 0xe0
+        data[section_table:section_table + 8] = b".vmp0\0\0\0"
+        self.path.write_bytes(data)
+        report = analyze_file(str(self.path))
+        self.assertEqual(report["status"], "incomplete")
+        self.assertIsNone(report["strings"])
+        self.assertIsNone(report["apis"])
+        apis = report["packed_file_apis"]
+        self.assertEqual([x["name"] for x in apis["imports"]], ["CreateFileW", None])
+        self.assertEqual([x["name"] for x in apis["delay_imports"]], ["MessageBoxW", None])
+        self.assertEqual([x["name"] for x in apis["exports"]], ["ExportedFunction", None])
+        output = io.StringIO()
+        with patch("cli.visualizer.console", Console(file=output, width=160)):
+            render_report(report)
+        self.assertIn("Packed original: Imports", output.getvalue())
+        self.assertIn("CreateFileW", output.getvalue())
 
     def test_automatic_reports_do_not_overwrite_existing_files(self):
         self.path.write_bytes(build_minimal_pe(packed=False))

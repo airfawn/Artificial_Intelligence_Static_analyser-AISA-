@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from training.review_queue import approved_records, build_queue
+from training.legacy.review_queue import approved_records, build_queue
 
 
 def cape(digest, count=1):
@@ -72,6 +72,22 @@ class TestReviewQueue(unittest.TestCase):
             ]}), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "checksum"):
                 build_queue(manifest)
+
+    def test_incomplete_static_reports_are_blocked_not_fatal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records = []
+            incomplete = cape("a" * 64)
+            del incomplete["target"]["file"]["pe"]
+            for name, value in (("incomplete", incomplete), ("complete", cape("b" * 64))):
+                payload = json.dumps(value).encode()
+                (root / f"{name}.json").write_bytes(payload)
+                records.append({"file": f"{name}.json", "sha256": hashlib.sha256(payload).hexdigest()})
+            manifest = root / "manifest.json"
+            manifest.write_text(json.dumps({"records": records}))
+            items = build_queue(manifest)["items"]
+            self.assertEqual([item["status"] for item in items], ["blocked", "pending"])
+            self.assertIn("Static evidence unavailable", items[0]["blocked_reason"])
 
 
 if __name__ == "__main__":

@@ -130,6 +130,46 @@ def build_minimal_pe(packed: bool = False) -> bytes:
     return headers + section_data
 
 
+def build_api_fixture() -> bytes:
+    """Create a PE32 fixture with named and ordinal imports, delay imports, and exports."""
+    data = bytearray(build_minimal_pe(packed=False))
+    data.extend(b"\0" * max(0, 0x1800 - len(data)))
+    base = 0x800
+    rva = 0x2000
+    directories = 0x80 + 4 + 20 + 96
+
+    def directory(index, offset, size):
+        struct.pack_into("<II", data, directories + index * 8, rva + offset, size)
+
+    def put(offset, value):
+        data[base + offset:base + offset + len(value)] = value
+
+    directory(1, 0x100, 40)
+    put(0x100, struct.pack("<IIIII", rva + 0x180, 0, 0, rva + 0x170, rva + 0x180))
+    put(0x170, b"KERNEL32.dll\0")
+    put(0x180, struct.pack("<III", rva + 0x1a0, 0x80000007, 0))
+    put(0x1a0, b"\x05\x00CreateFileW\0")
+
+    directory(13, 0x200, 64)
+    put(0x200, struct.pack("<IIIIIIII", 1, rva + 0x270, 0, rva + 0x280, rva + 0x280, 0, 0, 0))
+    put(0x270, b"USER32.dll\0")
+    put(0x280, struct.pack("<III", rva + 0x2a0, 0x80000009, 0))
+    put(0x2a0, b"\x03\x00MessageBoxW\0")
+
+    directory(0, 0x300, 0x100)
+    put(0x300, struct.pack(
+        "<IIHHIIIIIII", 0, 0, 0, 0, rva + 0x370, 1, 2, 1,
+        rva + 0x380, rva + 0x390, rva + 0x3a0,
+    ))
+    put(0x370, b"sample.dll\0")
+    put(0x380, struct.pack("<II", 0x1000, rva + 0x3d0))
+    put(0x390, struct.pack("<I", rva + 0x3b0))
+    put(0x3a0, struct.pack("<H", 0))
+    put(0x3b0, b"ExportedFunction\0")
+    put(0x3d0, b"OTHER.Forwarded\0")
+    return bytes(data)
+
+
 def build_dropper_pe() -> bytes:
     """
     Builds a synthetic PE that:

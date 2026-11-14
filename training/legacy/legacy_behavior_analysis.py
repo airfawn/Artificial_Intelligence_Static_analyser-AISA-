@@ -1,4 +1,4 @@
-"""Experimental, local-only LLM analysis of an existing collection report."""
+"""Historical local-only LLM analysis of an existing collection report."""
 
 import argparse
 import copy
@@ -8,7 +8,7 @@ from pathlib import Path
 from urllib.error import URLError
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
-from .bundled_runtime import bundled_server
+from .legacy_bundled_runtime import bundled_server
 
 MODEL = "qwen3:1.7b"
 ENDPOINT = "http://127.0.0.1:11434/api/chat"
@@ -157,6 +157,8 @@ def query_model(prompt, schema, model=MODEL, endpoint=ENDPOINT):
             result = json.load(response)
     except (OSError, URLError) as exc:
         raise RuntimeError(f"Local Ollama request failed: {exc}") from exc
+    if not isinstance(result, dict):
+        raise RuntimeError("Local Ollama returned an invalid response")
     if result.get("done_reason") != "stop":
         raise RuntimeError(f"Model response did not complete: {result.get('done_reason')}")
     try:
@@ -170,7 +172,9 @@ def prepare_evidence(evidence):
     selected = {item["id"]: item for item in selected_items}
     evidence_json = json.dumps(compact, ensure_ascii=True)
     prompt = (
-        "Produce at most three possible behaviors in descending order of support. "
+        "Produce at most three possible behaviors or malware types in descending order of support. "
+        "Suggest a malware type only when the static evidence supports it. "
+        "Generic imports and strings do not establish that a sample is malicious or benign. "
         "Cite evidence IDs for every hypothesis; describe important limitations. "
         "Keep each explanation under 35 words, each limitation under 25 words, "
         "and the summary under 50 words. "
@@ -183,6 +187,16 @@ def prepare_evidence_prompt(report):
     return prepare_evidence(build_evidence(report))
 
 
+def analysis_schema(selected):
+    schema = copy.deepcopy(ANALYSIS_SCHEMA)
+    hypothesis_schema = schema["properties"]["hypotheses"]
+    hypothesis_schema["maxItems"] = 3
+    references = hypothesis_schema["items"]["properties"]["evidence_ids"]
+    references["minItems"] = 1
+    references["items"]["enum"] = list(selected)
+    return schema
+
+
 def analyze_report(report, model=MODEL, query=None):
     if query is None:
         query = query_model
@@ -190,15 +204,9 @@ def analyze_report(report, model=MODEL, query=None):
     if not selected:
         analysis = {"hypotheses": [], "summary": "Insufficient evidence selected for a hypothesis."}
     else:
-        schema = copy.deepcopy(ANALYSIS_SCHEMA)
-        hypothesis_schema = schema["properties"]["hypotheses"]
-        hypothesis_schema["maxItems"] = 3
-        references = hypothesis_schema["items"]["properties"]["evidence_ids"]
-        references["minItems"] = 1
-        references["items"]["enum"] = list(selected)
         analysis = query(
             prompt,
-            schema, model,
+            analysis_schema(selected), model,
         )
         validate_analysis(analysis, selected)
     return {
@@ -248,6 +256,15 @@ def validate_analysis(analysis, selected):
     hypotheses.sort(key=lambda item: ranks[item["support"]])
 
 
+def analyze_locally(report, model=MODEL):
+    if getattr(sys, "frozen", False):
+        with bundled_server(Path(sys.executable).resolve().parent) as endpoint:
+            def query(prompt, schema, selected_model):
+                return query_model(prompt, schema, selected_model, endpoint=endpoint)
+            return analyze_report(report, model=model, query=query)
+    return analyze_report(report, model=model)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Experimental offline analysis of an AISA collection report.")
     parser.add_argument("report", help="Path to an existing collection report JSON")
@@ -261,13 +278,7 @@ def main(argv=None):
             raise ValueError("Report must be a JSON object")
         if Path(args.output).exists():
             raise FileExistsError(f"Output already exists: {args.output}")
-        if getattr(sys, "frozen", False):
-            with bundled_server(Path(sys.executable).resolve().parent) as endpoint:
-                def query(prompt, schema, model):
-                    return query_model(prompt, schema, model, endpoint=endpoint)
-                result = analyze_report(report, model=args.model, query=query)
-        else:
-            result = analyze_report(report, model=args.model)
+        result = analyze_locally(report, model=args.model)
         with Path(args.output).open("x", encoding="utf-8") as file:
             json.dump(result, file, indent=2, ensure_ascii=True)
     except (OSError, ValueError, RuntimeError) as exc:

@@ -1,4 +1,4 @@
-# Training-data audit
+# Historical training-data audit
 
 ## Decision
 
@@ -11,7 +11,7 @@ learning and does not establish malware-analysis accuracy.
 ## What was audited
 
 - The 29 cases in the six Claude teacher-packet batches, matched to
-  `output-claude.json` and the supplied corrections at
+  [output-claude.json](../../reports/legacy/output-claude.json) and the supplied corrections at
   `/Volumes/External-SSD/aisa-training-data/claude-teacher-packet/`.
 - The existing review queue at `/Volumes/External-SSD/aisa-training-data/`.
 - Citation validity using the evidence IDs actually supplied for each case.
@@ -162,3 +162,36 @@ of 1,894 (below the 4,096 limit), but semantic label accuracy is unverified.
 The Ollama schema-constrained path remains untested. The v2 adapter is
 therefore still experimental and not for deployment; see `run-metadata.json`
 in the v2 directory for the run details.
+
+## Local-teacher weak-label pilot
+
+A later experiment downloaded 100 pinned CAPE JSON reports (50 from each source
+partition), without downloading or executing binaries. The first 20 usable
+cases were selected evenly across partitions; 11 earlier reports were excluded
+for duplicate hashes or exceeding the API evidence budget. A local
+`qwen3:14b` teacher received source labels and sandbox signature descriptions as
+unverified hints. The student's prompts contained only the selected static
+strings and imports. The resulting 14 train, three validation, and three test
+examples are machine-generated weak labels, not analyst-confirmed truth.
+Grouping identical static evidence does not rule out related families in
+different splits. The reports and partitions are not representative.
+
+An MLX QLoRA run trained `mlx-community/Qwen3-1.7B-4bit` for 30 iterations
+with eight LoRA layers, rank 8 and prompt masking. Validation loss fell from
+2.303 to 0.776 against three weak labels; it is not an accuracy measure.
+In unconstrained held-out generation, both the base model and the adapter
+failed JSON or schema validation on all three cases.
+
+For the actual Ollama-style constrained request, the pinned base model produced
+structurally valid analyses for all three cases, but included unsupported or
+misleading malware-type claims on benign-partition examples. The fused adapter
+could not be imported by the standard Ollama safetensors importer; its
+experimental importer accepted the model but did not honor the requested JSON
+format or thinking setting. The adapted model failed all three constrained
+requests, and still failed schema validation on all three when explicitly
+prompted not to think. The labels themselves also contained unsupported
+claims, including an unjustified self-modifying-code hypothesis.
+
+These are small, weakly labeled smoke checks, not malware-detection accuracy
+or calibration results. The adapter is experimental and must not replace the
+pinned installer model on the basis of this run.

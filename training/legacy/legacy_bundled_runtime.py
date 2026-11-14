@@ -1,4 +1,4 @@
-"""Run the bundled inference server only for the duration of an analysis."""
+"""Historical Qwen experiment: run a private inference server locally."""
 
 import contextlib
 import json

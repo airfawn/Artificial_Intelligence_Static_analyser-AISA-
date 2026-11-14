@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 import sys
 
-from core.behavior_analysis import SYSTEM, prepare_evidence, prepare_evidence_prompt, validate_analysis
-from training.cape_adapter import static_evidence
+from training.legacy.legacy_behavior_analysis import SYSTEM, prepare_evidence, prepare_evidence_prompt, validate_analysis
+from training.legacy.cape_adapter import static_evidence
 
 
 def prepare(records, base):

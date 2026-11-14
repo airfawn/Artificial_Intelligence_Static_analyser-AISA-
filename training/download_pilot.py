@@ -13,6 +13,9 @@ DATASET = "Thcrull/win-exe-malware-analysis"
 DIRECTORIES = {
     "malware": "malware_reports/reports",
     "benign": "benign_reports/Benign-NET/reports",
+    "portableapps": "benign_reports/PortableApps/reports",
+    "installers": "benign_reports/PortableAppsInstallers/reports",
+    "sysinternals": "benign_reports/SysinternalsSuite/reports",
 }
 MAX_REPORT_BYTES = 5_000_000
 
@@ -59,8 +62,13 @@ def download(entry, directory):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, help="New dataset directory")
-    parser.add_argument("--per-class", type=int, default=20, choices=range(1, 21))
+    parser.add_argument("--per-class", type=int, default=20, choices=range(1, 101))
+    parser.add_argument("--source", action="append", choices=tuple(DIRECTORIES),
+                        help="Report source; repeat to select multiple (default: malware and benign)")
     args = parser.parse_args()
+    sources = args.source if args.source else ["malware", "benign"]
+    if len(set(sources)) != len(sources):
+        parser.error("Each report source may be selected only once")
     destination = Path(args.output)
     destination.mkdir(parents=True, exist_ok=False)
     manifest = {
@@ -70,15 +78,20 @@ def main():
         "selection": "first non-LFS JSON reports <= 5 MB in first catalog page; not representative",
         "records": [],
     }
-    for label, remote_directory in DIRECTORIES.items():
+    for source in sources:
+        remote_directory = DIRECTORIES[source]
+        label = "malware" if source == "malware" else "benign"
         records = catalog(remote_directory)
+        if not records:
+            raise RuntimeError(f"No eligible reports found for {source}")
         if len(records) < args.per_class:
-            raise RuntimeError(f"Only {len(records)} eligible reports found for {label}")
-        local = destination / label
+            print(f"Only {len(records)} eligible reports found for {source}; downloading all.")
+        local = destination / source
         local.mkdir()
         for entry in records[:args.per_class]:
             record = download(entry, local)
             record["dataset_partition"] = label
+            record["source_group"] = source
             manifest["records"].append(record)
             print(f"Downloaded {label}: {record['file']}", flush=True)
     with (destination / "manifest.json").open("x", encoding="utf-8") as file:

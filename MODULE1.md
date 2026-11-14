@@ -1,8 +1,11 @@
 # Module 1: PE data collection
 
 Install the command in the project's virtual environment using `pip install .`,
-then activate that environment and run `aisa -f path/to/sample.exe` to inspect a
-Windows PE file. Alternatively, use `python main.py path/to/sample.exe` without
+then activate that environment and run `aisa -f path/to/sample.exe` to collect
+evidence without running the API analyzer. `--collect-only` or
+`--collect-only=true` explicitly selects collection only;
+`--collect-only=false` opts into experimental offline API analysis.
+Alternatively, use `python main.py path/to/sample.exe` without
 installing the project. Reinstall after changing the source or trained weights.
 Run `aisa -h` for options. The report
 is displayed in the terminal and saved next to the input as
@@ -12,13 +15,18 @@ to select a new output file, and `--min-len 4` to set the minimum string length.
 The aliases `-j` and `--json` remain available for the output path.
 An explicitly named output file must not already exist. Exit code 0 means the
 collection completed, 2 means it is incomplete, and 1 means an I/O or input
-error prevented completion.
+error prevented completion, including an AI failure. A complete collection is
+still saved if the AI fails; see `ai_analysis.error` in the report. An incomplete
+collection skips AI analysis and returns 2.
 
 The original file's MD5 and SHA-256 are reported along with PE section names,
 sizes, entropy, and packing indicators. If the file looks UPX-packed and `upx`
 is on PATH, the tool attempts to unpack a temporary copy. It collects strings
 and APIs only if the resulting file is a valid PE without packing indicators.
-Otherwise, the incomplete report asks for an unpacked file. The original file
+Otherwise, the incomplete report asks for an unpacked file. Static API tables
+from the packed original are retained separately in `packed_file_apis`; these
+may describe a loader rather than the unpacked program and are not proof of
+execution. The original file
 is not changed; successful unpacking reports separate original and unpacked
 hashes. Packing detection is heuristic and can have false positives or misses.
 The report identifies UPX, ASPack, MPRESS, FSG, Themida, VMProtect, PECompact,
@@ -55,6 +63,22 @@ vectors against the earlier dataset; regeneration requires matching source
 wheels and UPX output. A larger independent dataset is needed before using the
 threshold for unpacking decisions.
 
+For a report-only packing experiment, `training.packing_report_experiment`
+adds CAPE reports with both `UPX0` and `UPX1` section names as weak UPX training
+examples. These names can be spoofed; CAPE rounds entropy, so sections reported
+at 7.00 are excluded. The candidate is not deployed:
+
+```text
+python -m training.packing_report_experiment --dataset data/packing_public.json --manifest data/local-cape/reports-v1/manifest.json --model data/local-cape/packing-candidate-v1.json --metrics data/local-cape/packing-candidate-v1-metrics.json
+```
+
+In the 206-report corpus described below, only one report supplied a usable
+weak UPX example. Both the original model and the candidate classified 14/14
+examples in the previously used test split correctly. This is not evidence of
+improvement: there is no independently labeled CAPE test set, and the original
+test split has already been used for model selection. No malware/benign
+partition was used as a packing label.
+
 The experimental nearest-centroid packing classifier reports a prediction and
 distance using normalized section features. It has only two classes, `UPX` and
 `unpacked`, and must pick one even for other packers. Its output is not proof
@@ -83,8 +107,7 @@ and creates temporary UPX copies. Replacing the shipped model requires
 deliberately deploying the newly trained file as `models/packing_model.json`
 and rebuilding or reinstalling. Training must use representative labeled data
 with independent source families and a held-out evaluation before predictions
-can be relied upon. Existing string scores remain in place and continue to
-inform Qwen's evidence selection.
+can be relied upon. Existing string scores remain in place.
 
 All extracted printable ASCII and UTF-16LE string occurrences are kept with
 their offsets, lengths, encodings, and Shannon entropy. The existing locally
@@ -117,43 +140,61 @@ absent directory has status `absent` and an empty list; an unreadable directory
 has status `unreadable` and a `null` value because its contents are unknown.
 Data collected from an unpacked file refers to the unpacked image.
 
-## Experimental offline behavior analysis
+## Experimental offline API analysis
 
-The optional baseline analyzes an existing complete collection report with the
-local `qwen3:1.7b` model; it does not execute the sample. The Windows offline
-installer includes a private Ollama runtime and model. AISA starts its own
-loopback-only Ollama server when analysis begins and stops it afterward; it
-does not use or alter a separately installed Ollama server or model store.
-To run it after installing:
+With `--collect-only=false`, AISA adds offline API analysis under `ai_analysis`
+in a complete collection report. This replaces Qwen on the CLI analysis path:
+no server or network connection is used. To analyze an existing report:
 
 ```powershell
 aisa --analyze-report "C:\Reports\sample.exe.report.json" --analysis-output "C:\Reports\sample.analysis.json"
 ```
 
-In a source checkout, use `python main.py` in place of `aisa` and start a local
-Ollama server at `127.0.0.1:11434` with `qwen3:1.7b` installed. The output must
-not already exist. The analysis is separate from collection and does not change
-the source report. It selects declared API entries and prioritizes strings using
-the existing suspicious flag, candidate categories and path markers, then
-generates up to three ranked hypotheses. Selection is bounded, so the model
-does not see every extracted string.
-Output retains source indices and offsets; the program rejects nonexistent
-evidence IDs, but cannot verify that a cited item supports the model's claim.
-Long strings are truncated for the model and counted in the output. Evidence
-selection counts are provided. If API evidence cannot fit the context budget,
-analysis fails explicitly. Results are experimental, not malware verdicts:
-evidence selection and reasoning may miss information or hallucinate.
+In a source checkout, use `python main.py` in place of `aisa`. The output must
+not already exist. Analysis requires a complete report and does not alter it.
+Normal and delay imports are matched by name; each result references the actual
+table and index. Ordinal-only imports cannot be analyzed, and names are not
+validated against DLL identity. Exports are not treated as imports.
 
-The model uses a bounded 8192-token context, but total process memory and VM
-performance depend on the runtime, hardware and workload. The 4 GB budget has
-not yet been verified on FLARE VM. The installed private server is shut down
-after analysis; for a manually run source-checkout server, use
-`ollama stop qwen3:1.7b` to release model memory. Treat model output as untrusted.
-Inference contacts only the local server; the private runtime disables Ollama
-cloud features. Downloading build components requires network access. No
-fine-tuning or malware-specific training is provided.
+The frequency model counts each name once per sample in the available CAPE
+normal import tables. The current model contains 49 malware-partition and 137
+benign-partition samples, excluding 11 reports with missing imports and 9
+duplicate samples. It records the most common imports overall and per automated
+CAPE family label; the four usable families have only one or two samples each.
+Family labels are unverified and matching a family-associated import does not
+identify the analyzed sample's family. The corpus is small, biased and not an
+independently evaluated malware benchmark.
 
-## Preparing reviewed behavior-training examples
+The report flags imports with curated capability descriptions, plus other
+imports appearing in at least three malware reports with a malware frequency
+at least 0.15 greater than the benign frequency. It includes both raw counts
+and denominators, and orders flags by that frequency difference. Five curated
+import combinations have conservative possible-use descriptions and corpus
+co-occurrence counts. It also reports learned pairs among curated APIs when
+they meet the same minimum count and frequency-difference threshold. Those
+thresholds are exploratory, not validated confidence or detection scores.
+Descriptions are human-authored, not learned from the corpus. Co-occurrence
+does not prove an interaction, intent, or execution, and common APIs have
+legitimate uses. The model cannot determine malware type or establish a
+verdict; a lack of indicators does not mean a file is safe.
+
+To reproduce the model and print the ten most frequent imports per partition
+and weak family (choose a new output path):
+
+```text
+python -m training.train_api_model data/local-cape/reports-v1/manifest.json --output path/to/api-model.json
+```
+
+The model is stored in `models/api_frequency_model.json`; raw reports are not
+required at analysis time. Replacing the packaged model requires reinstalling
+or rebuilding. The installer does not bundle Ollama or Qwen.
+
+## Historical behavior-training experiments
+
+The following Qwen-era tools and records are retained for research only.
+They are not part of the installed product or the offline API analyzer.
+Historical scripts are grouped under `training/legacy/`; existing generated
+reports are grouped under `reports/`.
 
 `training/download_pilot.py` downloads a pinned, non-representative pilot of
 public CAPE **JSON reports only**, never executables. These reports include
@@ -164,23 +205,42 @@ sensitive-looking malware indicators and must be handled as untrusted data.
 The dataset card states MIT licensing; separately assess rights to upstream
 sample and report content before redistribution.
 
+An expanded local corpus can be collected explicitly with:
+
+```text
+python -m training.download_pilot --output data/local-cape/reports-v1 --per-class 50 --source malware --source benign --source portableapps --source installers --source sysinternals
+```
+
+The limit applies separately to each source; smaller sources contribute all
+eligible reports. The manifest records source groups and checksums. The
+`data/local-cape/` directory is ignored by Git and is local to this checkout:
+back it up separately if needed. No reports are downloaded during analysis or
+bundled automatically. Source partitions do not label packing status, and
+neither malware nor benign implies packed or unpacked.
+
+The current corpus has 50 malware, 50 Benign-NET, 6 PortableApps, 50 installer,
+and 50 Sysinternals reports. A local review queue has 68 pending entries and
+138 blocked: 118 exceed the former Qwen experiment's API context budget, 11 lack
+static evidence, and 9 duplicate a sample. Blocked reports remain in the
+corpus; no review or AI training is implied.
+
 To prepare training data, create a JSON array of records from actual AISA
 collection reports and analyst reviews. Each record requires `report` (path
 relative to the review file), `split` (`train`, `valid`, or `test`), `reviewer`,
-and `chosen` (the same `hypotheses`/`summary` JSON shape produced by analysis).
+and `chosen` (the historical Qwen `hypotheses`/`summary` JSON shape).
 For a CAPE report, add `"report_kind": "cape"`; the default is `"collector"`.
 The adapter uses only CAPE static strings and normal imports, with offsets and
 encoding unknown and without the collector's string scores or categories.
 It does not fabricate collector reports or use dynamic activity as evidence.
 Inspect the precise evidence IDs available for a CAPE review with
-`python -m training.preview_cape path/to/report.json`.
+`python -m training.legacy.preview_cape path/to/report.json`.
 
 To create a queue from the pilot manifest, then export completed reviews:
 
 ```text
-python -m training.review_queue create path/to/manifest.json --output path/to/review-queue.json
-python -m training.review_queue export path/to/review-queue.json --output path/to/reviews.json
-python -m training.prepare_reviewed path/to/reviews.json --output path/to/reviewed-export
+python -m training.legacy.review_queue create path/to/manifest.json --output path/to/review-queue.json
+python -m training.legacy.review_queue export path/to/review-queue.json --output path/to/reviews.json
+python -m training.legacy.prepare_reviewed path/to/reviews.json --output path/to/reviewed-export
 ```
 
 In the queue, `pending` entries have not been reviewed. Inspect each entry's
@@ -197,7 +257,7 @@ validates reviewed evidence IDs; it does not verify claims or reviewer identity.
 For provisional external-teacher labels, generate a separate packet with:
 
 ```text
-python -m training.teacher_packet path/to/review-queue.json --output path/to/new-teacher-packet
+python -m training.legacy.teacher_packet path/to/review-queue.json --output path/to/new-teacher-packet
 ```
 
 The packet contains an instruction file, batches of at most five cases using
@@ -228,28 +288,69 @@ For example:
 Provide reviewed examples in all three splits, then from the repository root run:
 
 ```text
-python -m training.prepare_reviewed reviews.json --output reviewed-export
+python -m training.legacy.prepare_reviewed reviews.json --output reviewed-export
 ```
 
-The export uses the same evidence selection and prompt as inference, verifies
+The export uses the historical Qwen evidence selection and prompt, verifies
 chosen evidence IDs and rejects duplicate sample hashes, and emits supervised
 chat JSONL and separate preference JSONL. It is not a training run and does not
-perform reinforcement learning or establish model quality. A dataset large
-enough for representative, independently reviewed training and held-out
-evaluation is required before either fine-tuning or preference optimization.
+perform reinforcement learning or establish model quality. Representative,
+independently reviewed data is required before treating a fine-tuned model as
+reliable.
+
+## Historical experimental weak-label training
+
+The local-only `training.legacy.weak_supervision` tool creates an experimental SFT
+dataset without claiming analyst review. It supplies CAPE static strings and
+imports to the student, and gives a local teacher the source partition and
+sandbox signatures as weak hints. The hints are not student evidence and do
+not prove that a static artifact caused an observed behavior. The teacher can
+still generate unsupported claims even when every cited ID exists. Generated
+labels require inspection and must not be treated as ground truth.
+
+For example, after downloading the reports and making `qwen3:14b` available on
+a local Ollama server:
+
+```text
+python -m training.download_pilot --output path/to/reports --per-class 50
+python -m training.legacy.weak_supervision path/to/reports/manifest.json --output path/to/weak-data --teacher qwen3:14b --port 11434
+```
+
+The teacher endpoint is restricted to loopback. Data, intermediate labels and
+the final provenance file are stored locally; no inference-time download is
+performed. `provenance.json` is written only after the whole generation
+completes. Partial JSONL files are not a completed dataset; rerun the same
+command with `--resume` to verify and continue an interrupted generation.
+Splits group exact
+static evidence, but can still contain related samples or families across
+splits; the selected reports and source partitions are biased. Neither split
+nor teacher agreement is an independent malware-accuracy benchmark.
+
+On Apple silicon, an isolated environment with `mlx-lm` can train a local
+Qwen3 adapter from those JSONL files and run `training.legacy.evaluate_weak` on the
+test split. For an Ollama model already available on a local server, test the
+same held-out examples with:
+
+```text
+python -m training.legacy.evaluate_weak --data path/to/weak-data --ollama-model qwen3:1.7b --port 11434 --output path/to/evaluation.json
+```
+
+Its citation overlap measures agreement with the teacher, not correctness.
+Do not bundle an adapter without evaluating its actual generated claims and
+verifying its runtime format. This experiment is SFT, not reinforcement
+learning.
 
 ## Windows offline installer
 
 The x64 Windows installer contains AISA, its Python runtime and dependencies,
-the string classifier, UPX, Ollama runtime, and Qwen3 1.7B. No internet, Python,
-pip, separately installed Ollama, or administrator access is
+the string, packing and API models, and UPX. No internet, Python, pip, or administrator access is
 needed on the target machine. Run the installer and leave the PATH option
 selected to use `aisa` in a newly opened Command Prompt or PowerShell window:
 
 ```powershell
 aisa -h
 aisa -f "C:\Samples\sample.exe"
-aisa -f "C:\Samples\sample.exe" -s "C:\Reports\report.json"
+aisa -f "C:\Samples\sample.exe" -s "C:\Reports\report.json" --collect-only=false
 ```
 
 If PATH is not selected or a security policy blocks PATH changes, use the full
@@ -263,18 +364,14 @@ The installer must first be built on a connected Windows x64 machine or via
 the manually run GitHub Actions workflow `Build Windows offline installer`. That
 workflow builds and tests the installer and provides the executable and its
 `AISA-Setup-x64-*.bin` data files as a downloadable workflow artifact. Keep all
-files together when transferring them to the isolated machine. It uses official
-UPX 5.0.2, Ollama 0.32.5 and a pinned Qwen3 1.7B model, verified by SHA-256.
-The installer and extracted runtime require several gigabytes of disk space.
-Building and transferring it does not happen automatically.
+files together when transferring them to the isolated machine. It uses the
+official UPX 5.0.2 archive verified by SHA-256. Building and transferring it
+does not happen automatically. Any older installer checked into the repository
+predates these changes and must not be mistaken for a freshly built installer.
 
 To build locally on Windows, install x64 Python 3.12 and Inno Setup 6, then
 download and extract the official Windows x64 UPX archive from
-https://github.com/upx/upx/releases/tag/v5.0.2 and Ollama's
-`ollama-windows-amd64.zip` from https://github.com/ollama/ollama/releases/tag/v0.32.5.
-Put the Ollama release LICENSE alongside `ollama.exe`. Prepare a separate
-Ollama model store containing the pinned `qwen3:1.7b` model. The build rejects
-a different manifest or corrupted blob. In PowerShell, from the project folder:
+https://github.com/upx/upx/releases/tag/v5.0.2. In PowerShell, from the project folder:
 
 ```powershell
 py -3.12 -m venv .build-venv
@@ -282,9 +379,7 @@ py -3.12 -m venv .build-venv
 .\installer\windows\build.ps1 `
   -Python ".\.build-venv\Scripts\python.exe" `
   -InnoCompiler "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
-  -UpxDirectory "C:\path\to\upx-5.0.2-win64" `
-  -OllamaDirectory "C:\path\to\ollama" `
-  -ModelDirectory "C:\path\to\ollama-models"
+  -UpxDirectory "C:\path\to\upx-5.0.2-win64"
 ```
 
 The output includes `dist\windows\AISA-Setup-x64.exe` and adjacent data slices.
@@ -292,7 +387,7 @@ The UPX directory must contain
 `upx.exe`, `COPYING`, and `LICENSE`; those files are included in the installer.
 The build requires internet access unless its build dependencies are already
 available locally. It checks the bundled UPX and runs a synthetic-PE smoke test
-against the frozen executable, including local model inference. Distributors
-should review the bundled UPX, Ollama and Qwen licenses and applicable
+against the frozen executable, including offline API analysis. Distributors
+should review the bundled UPX license and applicable
 corresponding-source obligations. The GitHub workflow additionally tests
 installation, the installed executable, PATH addition, and uninstallation.

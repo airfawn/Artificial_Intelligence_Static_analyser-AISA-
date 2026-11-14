@@ -25,12 +25,10 @@ jobs:
             choco install innosetup --yes --no-progress
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-      - name: Test model and analysis code
+      - name: Run test suite
         shell: pwsh
         run: |
-          python -m unittest discover -s tests -p test_installer_model.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m unittest discover -s tests -p test_behavior_analysis.py
+          python -m unittest discover -s tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Download and verify official UPX
         shell: pwsh
@@ -42,51 +40,11 @@ jobs:
             throw "UPX archive SHA-256 does not match the official release."
           }
           Expand-Archive $archive -DestinationPath $env:RUNNER_TEMP
-      - name: Download and verify Ollama runtime and model
-        shell: pwsh
-        run: |
-          $archive = Join-Path $env:RUNNER_TEMP "ollama-windows-amd64.zip"
-          Invoke-WebRequest "https://github.com/ollama/ollama/releases/download/v0.32.5/ollama-windows-amd64.zip" -OutFile $archive
-          if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne "7c941ae084569d298062d29f8139163a3187c76dbca0479c70d085e78fd8c7bb") {
-            throw "Ollama archive SHA-256 mismatch."
-          }
-          $runtime = Join-Path $env:RUNNER_TEMP "aisa-ollama"
-          Expand-Archive $archive -DestinationPath $runtime
-          $license = Join-Path $runtime "LICENSE"
-          Invoke-WebRequest "https://raw.githubusercontent.com/ollama/ollama/v0.32.5/LICENSE" -OutFile $license
-          if ((Get-FileHash $license -Algorithm SHA256).Hash -ne "5934ed2ce0d15154bcdb9c85203210abac0da4314af34081e36df4599f90b226") {
-            throw "Ollama license SHA-256 mismatch."
-          }
-          $env:OLLAMA_HOST = "127.0.0.1:11535"
-          $env:OLLAMA_MODELS = Join-Path $env:RUNNER_TEMP "aisa-models"
-          $env:OLLAMA_NO_CLOUD = "1"
-          $exe = Join-Path $runtime "ollama.exe"
-          $server = Start-Process -FilePath $exe -ArgumentList "serve" -PassThru -NoNewWindow
-          try {
-            $ready = $false
-            for ($i = 0; $i -lt 120; $i++) {
-              if ($server.HasExited) { throw "Ollama server exited during startup." }
-              try {
-                Invoke-RestMethod "http://127.0.0.1:11535/api/tags" -TimeoutSec 1 | Out-Null
-                $ready = $true
-                break
-              } catch { Start-Sleep -Seconds 1 }
-            }
-            if (-not $ready) { throw "Ollama server did not start." }
-            & $exe pull qwen3:1.7b
-            if ($LASTEXITCODE -ne 0) { throw "Model download failed." }
-            python installer/windows/verify_model.py $env:OLLAMA_MODELS
-            if ($LASTEXITCODE -ne 0) { throw "Model verification failed." }
-          } finally {
-            if (-not $server.HasExited) { Stop-Process -Id $server.Id -Force }
-          }
       - name: Build installer
         shell: pwsh
         run: |
           ./installer/windows/build.ps1 `
             -UpxDirectory "$env:RUNNER_TEMP\upx-5.0.2-win64" `
-            -OllamaDirectory "$env:RUNNER_TEMP\aisa-ollama" `
-            -ModelDirectory "$env:RUNNER_TEMP\aisa-models" `
             -InnoCompiler "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
       - name: Test installed executable
         shell: pwsh
@@ -100,13 +58,15 @@ jobs:
           try {
             $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
             if ($destination -notin ($userPath -split ';')) { throw "Installer did not add AISA to PATH." }
+            $env:Path = "$destination;$env:Path"
+            & aisa -h
+            if ($LASTEXITCODE -ne 0) { throw "AISA could not be run from PATH." }
             python installer/windows/smoke_test.py "$destination\aisa.exe"
             if ($LASTEXITCODE -ne 0) { throw "Installed executable failed its smoke test." }
-            $runtimePath = Join-Path $destination "ollama\"
-            $remaining = Get-CimInstance Win32_Process | Where-Object {
-              $_.ExecutablePath -and $_.ExecutablePath.StartsWith($runtimePath, [System.StringComparison]::OrdinalIgnoreCase)
+            if ((Test-Path (Join-Path $destination "ollama")) -or
+                (Test-Path (Join-Path $destination "ollama-models"))) {
+              throw "Unexpected legacy inference runtime in installer."
             }
-            if ($remaining) { throw "Bundled Ollama processes remained after analysis." }
             & "$destination\upx\upx.exe" --version
             if ($LASTEXITCODE -ne 0) { throw "Installed UPX failed its version check." }
           } finally {

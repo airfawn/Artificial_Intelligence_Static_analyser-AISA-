@@ -11,6 +11,69 @@ from rich.text import Text
 console = Console()
 
 
+def render_ai_analysis(result: Dict[str, Any]) -> None:
+    if result["status"] != "experimental":
+        detail = result.get("error") or result.get("message", "Analysis was not performed.")
+        console.print(Panel(Text(detail), title="AI analysis", border_style="yellow"))
+        return
+
+    lines = ["Experimental offline import analysis; counts are not confidence scores."]
+    for item in result["flagged_imports"]:
+        refs = ", ".join(f"{e['table']}[{e['index']}] {e.get('dll') or '?'}!{e['name']}"
+                         for e in item["evidence"])
+        lines.append(f"\n{refs}: {item['suggestion']}")
+        lines.append(f"  Corpus: malware {item['malware_reports']}/{item['malware_total']}; "
+                     f"benign {item['benign_reports']}/{item['benign_total']}")
+        for family in item["weak_family_counts"]:
+            lines.append(f"  Unverified family {family['label']}: {family['count']}/{family['samples']}")
+    for item in result["patterns"]:
+        refs = ", ".join(f"{e['table']}[{e['index']}] {e.get('dll') or '?'}!{e['name']}"
+                         for e in item["evidence"])
+        lines.append(f"\nCombination: {refs}\n  {item['suggestion']}")
+        lines.append(f"  Corpus: malware {item['malware_reports']}/{item['malware_total']}; "
+                     f"benign {item['benign_reports']}/{item['benign_total']}")
+    for item in result["observed_associations"]:
+        refs = ", ".join(f"{e['table']}[{e['index']}] {e.get('dll') or '?'}!{e['name']}"
+                         for e in item["evidence"])
+        lines.append(f"\nCorpus association: {refs}\n  {item['suggestion']}")
+        lines.append(f"  Corpus: malware {item['malware_reports']}/{item['malware_total']}; "
+                     f"benign {item['benign_reports']}/{item['benign_total']}")
+    lines.append(f"\nSummary: {result['summary']}")
+    lines.extend(result["limitations"])
+    console.print(Panel(Text("\n".join(lines)), title="Offline API analysis"))
+
+
+def render_api_tables(apis: Dict[str, Any], prefix: str = "") -> None:
+    console.print(Panel(Text(apis["limitations"]), title=f"{prefix}API collection limitations"))
+    for warning in apis["warnings"]:
+        console.print(Panel(Text(warning), title="PE parser warning", border_style="yellow"))
+    for category, title in (("imports", "Imports"), ("delay_imports", "Delay imports"), ("exports", "Exports")):
+        title = f"{prefix}{title}"
+        entries = apis[category]
+        status = apis["directories"][category]["status"]
+        if status == "unreadable":
+            console.print(Panel(Text(apis["directories"][category]["message"]),
+                                title=f"{title}: unreadable", border_style="red"))
+            continue
+        if status == "absent":
+            console.print(Panel("No directory is declared in the PE.", title=f"{title}: absent"))
+            continue
+        table = Table(title=f"{title}: {len(entries)} ({status})")
+        for name in ("DLL", "Name", "Ordinal", "Hint", "Address", "Forwarder"):
+            table.add_column(name)
+        for item in entries:
+            address = item.get("address_rva", item.get("address"))
+            table.add_row(
+                Text(str(item.get("dll") or apis.get("export_dll") or "")),
+                Text(str(item.get("name") or "")),
+                str(item["ordinal"]) if item.get("ordinal") is not None else "",
+                str(item["hint"]) if item.get("hint") is not None else "",
+                hex(address) if address is not None else "",
+                Text(str(item.get("forwarder") or "")),
+            )
+        console.print(table)
+
+
 def render_report(report: Dict[str, Any]) -> None:
     pe = report["pe_metadata"]
     console.print(Panel("STATIC PE DATA COLLECTION", box=box.DOUBLE))
@@ -83,38 +146,14 @@ def render_report(report: Dict[str, Any]) -> None:
                             title="Unpacked file hashes"))
     for error in report["errors"]:
         console.print(Panel(Text(error), title="Collection error", border_style="red"))
+    if report.get("packed_file_apis") is not None:
+        render_api_tables(report["packed_file_apis"], "Packed original: ")
     if report["strings"] is None or report["apis"] is None:
-        console.print("[bold yellow]Collection incomplete; strings and APIs were not collected.[/bold yellow]")
+        console.print("[bold yellow]Collection incomplete; unpacked strings and APIs were not collected.[/bold yellow]")
         return
 
     apis = report["apis"]
-    console.print(Panel(Text(apis["limitations"]), title="API collection limitations"))
-    for warning in apis["warnings"]:
-        console.print(Panel(Text(warning), title="PE parser warning", border_style="yellow"))
-    for category, title in (("imports", "Imports"), ("delay_imports", "Delay imports"), ("exports", "Exports")):
-        entries = apis[category]
-        status = apis["directories"][category]["status"]
-        if status == "unreadable":
-            console.print(Panel(Text(apis["directories"][category]["message"]),
-                                title=f"{title}: unreadable", border_style="red"))
-            continue
-        if status == "absent":
-            console.print(Panel("No directory is declared in the PE.", title=f"{title}: absent"))
-            continue
-        table = Table(title=f"{title}: {len(entries)} ({status})")
-        for name in ("DLL", "Name", "Ordinal", "Hint", "Address", "Forwarder"):
-            table.add_column(name)
-        for item in entries:
-            address = item.get("address_rva", item.get("address"))
-            table.add_row(
-                Text(str(item.get("dll") or apis.get("export_dll") or "")),
-                Text(str(item.get("name") or "")),
-                str(item["ordinal"]) if item.get("ordinal") is not None else "",
-                str(item["hint"]) if item.get("hint") is not None else "",
-                hex(address) if address is not None else "",
-                Text(str(item.get("forwarder") or "")),
-            )
-        console.print(table)
+    render_api_tables(apis)
 
     categorized = report["categorized_strings"]
     console.print(Panel(

@@ -1,4 +1,4 @@
-"""Verify the exact Ollama model manifest and all of its referenced blobs."""
+"""Verify a historical Qwen model manifest and referenced blobs."""
 
 import hashlib
 import json

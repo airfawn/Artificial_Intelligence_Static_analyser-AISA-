@@ -97,7 +97,7 @@ class TestStringCategories(unittest.TestCase):
             path = Path(directory) / "fixture.exe"
             path.write_bytes(bytes(build_minimal_pe()) + b"\x00cmd.exe /c http://example.org/a C:\\Temp\\file.exe\x00")
             result = subprocess.run(
-                [sys.executable, str(project / "main.py"), str(path)],
+                [sys.executable, str(project / "main.py"), str(path), "--collect-only"],
                 capture_output=True, text=True, cwd=project,
             )
             self.assertEqual(result.returncode, 0, result.stderr)

@@ -271,7 +271,7 @@ class TestPackingFirstWorkflow(unittest.TestCase):
             output = Path(self.directory.name) / f"cli-report-{index}.json"
             self.path.write_bytes(contents)
             result = subprocess.run(
-                [sys.executable, str(project / "main.py"), str(self.path), "--json", str(output)],
+                [sys.executable, str(project / "main.py"), str(self.path), "--json", str(output), "--collect-only"],
                 capture_output=True, text=True, cwd=project,
             )
             self.assertEqual(result.returncode, expected_code, result.stderr)

@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 import sys
 
-from core.behavior_analysis import prepare_evidence
-from training.cape_adapter import static_evidence
+from training.legacy.legacy_behavior_analysis import prepare_evidence
+from training.legacy.cape_adapter import static_evidence
 
 
 def main(argv=None):

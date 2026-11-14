@@ -6,9 +6,9 @@ import json
 from pathlib import Path
 import sys
 
-from core.behavior_analysis import prepare_evidence
-from training.cape_adapter import static_evidence
-from training.prepare_reviewed import prepare
+from training.legacy.legacy_behavior_analysis import prepare_evidence
+from training.legacy.cape_adapter import static_evidence
+from training.legacy.prepare_reviewed import prepare
 
 
 def build_queue(manifest_path):
@@ -28,7 +28,10 @@ def build_queue(manifest_path):
         if file_digest != record["sha256"]:
             raise ValueError(f"Report checksum mismatch: {relative}")
         report = json.loads(payload)
-        digest, evidence = static_evidence(report)
+        target = report.get("target", {}).get("file")
+        if not isinstance(target, dict):
+            raise ValueError(f"Missing target file metadata: {relative}")
+        digest = target.get("sha256")
         if not isinstance(digest, str) or len(digest) != 64 or any(
             c not in "0123456789abcdef" for c in digest.lower()
         ):
@@ -53,6 +56,13 @@ def build_queue(manifest_path):
             items.append(item)
             continue
         seen[digest] = str(report_path)
+        try:
+            _, evidence = static_evidence(report)
+        except ValueError as exc:
+            item["status"] = "blocked"
+            item["blocked_reason"] = f"Static evidence unavailable: {exc}"
+            items.append(item)
+            continue
         try:
             _, selected, _, prompt = prepare_evidence(evidence)
         except RuntimeError as exc:

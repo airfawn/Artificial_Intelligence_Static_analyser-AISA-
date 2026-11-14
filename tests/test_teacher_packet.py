@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from training.review_queue import build_queue
-from training.teacher_packet import build_cases, write_packet
+from training.legacy.review_queue import build_queue
+from training.legacy.teacher_packet import build_cases, write_packet
 
 
 class TestTeacherPacket(unittest.TestCase):

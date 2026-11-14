@@ -1,11 +1,12 @@
 import json
+import io
 from contextlib import nullcontext
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from core.behavior_analysis import analyze_report, build_evidence, main
+from training.legacy.legacy_behavior_analysis import analyze_report, build_evidence, main, query_model
 
 
 def report():
@@ -37,6 +38,12 @@ def hypothesis(ids=None):
 
 
 class TestBehaviorAnalysis(unittest.TestCase):
+    def test_invalid_server_response_is_reported(self):
+        with patch("training.legacy.legacy_behavior_analysis.build_opener") as opener:
+            opener.return_value.open.return_value = io.StringIO("[]")
+            with self.assertRaisesRegex(RuntimeError, "invalid response"):
+                query_model("prompt", {})
+
     def test_analysis_preserves_references(self):
         result = analyze_report(report(), query=lambda *args: hypothesis())
         self.assertEqual(result["coverage"]["entries_examined"], 3)
@@ -101,7 +108,7 @@ class TestBehaviorAnalysis(unittest.TestCase):
             source = Path(directory) / "report.json"
             source.write_text(json.dumps(report()), encoding="utf-8")
             output = Path(directory) / "result.json"
-            with patch("core.behavior_analysis.query_model", side_effect=RuntimeError("server unavailable")):
+            with patch("training.legacy.legacy_behavior_analysis.query_model", side_effect=RuntimeError("server unavailable")):
                 self.assertEqual(main([str(source), "--output", str(output)]), 1)
             self.assertFalse(output.exists())
 
@@ -110,10 +117,10 @@ class TestBehaviorAnalysis(unittest.TestCase):
             source = Path(directory) / "report.json"
             source.write_text(json.dumps(report()), encoding="utf-8")
             output = Path(directory) / "result.json"
-            with patch("core.behavior_analysis.sys.frozen", True, create=True), \
-                 patch("core.behavior_analysis.bundled_server",
+            with patch("training.legacy.legacy_behavior_analysis.sys.frozen", True, create=True), \
+                 patch("training.legacy.legacy_behavior_analysis.bundled_server",
                        return_value=nullcontext("http://127.0.0.1:1234/api/chat")) as server, \
-                 patch("core.behavior_analysis.query_model", return_value=hypothesis()) as model:
+                 patch("training.legacy.legacy_behavior_analysis.query_model", return_value=hypothesis()) as model:
                 self.assertEqual(main([str(source), "--output", str(output)]), 0)
             server.assert_called_once()
             self.assertEqual(model.call_args.kwargs["endpoint"], "http://127.0.0.1:1234/api/chat")

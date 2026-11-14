@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from installer.windows.verify_model import verify
+from training.legacy.verify_qwen_model import verify
 
 
 class TestInstallerModel(unittest.TestCase):
@@ -24,7 +24,7 @@ class TestInstallerModel(unittest.TestCase):
                 "layers": [],
             }).encode()
             manifest.write_bytes(content)
-            with patch("installer.windows.verify_model.EXPECTED_MANIFEST", hashlib.sha256(content).hexdigest()):
+            with patch("training.legacy.verify_qwen_model.EXPECTED_MANIFEST", hashlib.sha256(content).hexdigest()):
                 verify(root)
                 blob.write_bytes(b"tampered data")
                 with self.assertRaisesRegex(ValueError, "failed verification"):

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import sys
 
-from core.behavior_analysis import validate_analysis
+from training.legacy.legacy_behavior_analysis import validate_analysis
 
 
 def build_corrections(packet, response):

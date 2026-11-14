@@ -82,6 +82,8 @@ def analyze_file(file_path: str, min_string_len: int = 4) -> Dict[str, Any]:
         finish(original)
         return report
 
+    assert original.pe is not None
+    report["packed_file_apis"] = collect_api_tables(original.pe)
     packer = packing["packer"]
     if packer["name"] != "UPX":
         if packer["status"] == "ambiguous":

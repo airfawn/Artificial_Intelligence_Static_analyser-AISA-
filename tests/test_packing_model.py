@@ -1,3 +1,4 @@
+import hashlib
 import json
 import tempfile
 import unittest
@@ -7,6 +8,7 @@ from unittest.mock import patch
 from core.packer_signatures import identify_packer
 from core.packing_model import FEATURES, PackingClassifierModel, assess_packing, extract_packing_features
 from training.packing_baseline import train_dataset
+from training.packing_report_experiment import experiment, report_features
 
 
 class TestPackingIdentification(unittest.TestCase):
@@ -31,6 +33,38 @@ class TestPackingIdentification(unittest.TestCase):
 
 
 class TestPackingModel(unittest.TestCase):
+    def test_report_experiment_uses_only_weak_upx_sections(self):
+        sections = [
+            {"name": "UPX0", "virtual_size": "0x2000", "size_of_data": "0x0", "entropy": "0.00"},
+            {"name": "UPX1", "virtual_size": "0x1000", "size_of_data": "0x1000", "entropy": "7.50"},
+        ]
+        report = {"target": {"file": {"sha256": "a" * 64, "pe": {"sections": sections}}}}
+        self.assertEqual(report_features(report), {
+            "section_count": 0.125, "high_entropy_fraction": 0.5,
+            "max_entropy": 7.5 / 8, "suspicious_geometry_fraction": 0.5,
+            "zero_raw_fraction": 0.5,
+        })
+        root = Path(__file__).resolve().parent.parent
+        dataset = json.loads((root / "data/packing_public.json").read_text())
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            payload = json.dumps(report).encode()
+            (path / "report.json").write_bytes(payload)
+            manifest = {"records": [{"file": "report.json", "sha256": hashlib.sha256(payload).hexdigest(),
+                                      "dataset_partition": "benign"}]}
+            (path / "manifest.json").write_text(json.dumps(manifest))
+            _, result = experiment(dataset, path / "manifest.json")
+            self.assertEqual(result["added_weak_upx_samples"], 1)
+            self.assertEqual(result["weak_samples"][0]["label"], "UPX")
+            manifest["records"][0]["sha256"] = "0" * 64
+            (path / "manifest.json").write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "checksum mismatch"):
+                experiment(dataset, path / "manifest.json")
+        sections[1]["entropy"] = "7.00"
+        self.assertIsNone(report_features(report))
+        sections[1]["name"] = ".text"
+        self.assertIsNone(report_features(report))
+
     def test_untrained_model_does_not_predict(self):
         model = PackingClassifierModel()
         features = extract_packing_features({"sections": []})

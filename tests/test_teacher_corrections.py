@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from training.prepare_teacher_corrections import build_corrections
+from training.legacy.prepare_teacher_corrections import build_corrections
 
 
 class TestTeacherCorrections(unittest.TestCase):

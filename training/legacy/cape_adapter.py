@@ -1,6 +1,6 @@
 """Adapt CAPE's static evidence only; never convert dynamic findings into labels."""
 
-from core.behavior_analysis import MAX_VALUE_LENGTH
+from training.legacy.legacy_behavior_analysis import MAX_VALUE_LENGTH
 
 
 def static_evidence(report):

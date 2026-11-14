@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from urllib.request import urlopen
 
-from core.bundled_runtime import MODEL_ID, bundled_server
+from training.legacy.legacy_bundled_runtime import MODEL_ID, bundled_server
 
 
 @unittest.skipIf(os.name == "nt", "The fake runtime fixture is a Unix executable")
