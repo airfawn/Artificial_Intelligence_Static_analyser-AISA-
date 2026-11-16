@@ -9,6 +9,7 @@ from urllib.error import URLError
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 from .legacy_bundled_runtime import bundled_server
+from .guardrails import block_untrusted_llm
 
 MODEL = "qwen3:1.7b"
 ENDPOINT = "http://127.0.0.1:11434/api/chat"
@@ -138,6 +139,7 @@ def select_evidence(evidence):
 
 
 def query_model(prompt, schema, model=MODEL, endpoint=ENDPOINT):
+    block_untrusted_llm()
     payload = {
         "model": model,
         "stream": False,
@@ -168,6 +170,7 @@ def query_model(prompt, schema, model=MODEL, endpoint=ENDPOINT):
 
 
 def prepare_evidence(evidence):
+    block_untrusted_llm()
     selected_items, compact = select_evidence(evidence)
     selected = {item["id"]: item for item in selected_items}
     evidence_json = json.dumps(compact, ensure_ascii=True)
@@ -198,6 +201,7 @@ def analysis_schema(selected):
 
 
 def analyze_report(report, model=MODEL, query=None):
+    block_untrusted_llm()
     if query is None:
         query = query_model
     evidence, selected_items, selected, prompt = prepare_evidence_prompt(report)
@@ -257,6 +261,7 @@ def validate_analysis(analysis, selected):
 
 
 def analyze_locally(report, model=MODEL):
+    block_untrusted_llm()
     if getattr(sys, "frozen", False):
         with bundled_server(Path(sys.executable).resolve().parent) as endpoint:
             def query(prompt, schema, selected_model):

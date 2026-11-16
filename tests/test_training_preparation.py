@@ -23,6 +23,8 @@ def report(digest):
     }
 
 
+@patch("training.legacy.prepare_reviewed.block_untrusted_llm", lambda: None)
+@patch("training.legacy.legacy_behavior_analysis.block_untrusted_llm", lambda: None)
 class TestReviewedPreparation(unittest.TestCase):
     def test_expanded_report_sources_keep_provenance(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -108,6 +110,8 @@ class TestReviewedPreparation(unittest.TestCase):
             self.assertFalse(output.exists())
 
 
+@patch("training.legacy.weak_supervision.block_untrusted_llm", lambda: None)
+@patch("training.legacy.legacy_behavior_analysis.block_untrusted_llm", lambda: None)
 class TestWeakSupervision(unittest.TestCase):
     def test_static_only_student_prompts_and_grouped_splits(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -187,6 +191,7 @@ class TestWeakSupervision(unittest.TestCase):
             self.assertEqual(len(json.loads((interrupted / "provenance.json").read_text())["records"]), 4)
 
 
+@patch("training.legacy.evaluate_weak.block_untrusted_llm", lambda: None)
 class TestWeakEvaluation(unittest.TestCase):
     def write_data(self, root):
         (root / "provenance.json").write_text(json.dumps({

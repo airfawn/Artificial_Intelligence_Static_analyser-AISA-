@@ -32,14 +32,14 @@ def main():
         if not sample.with_name(sample.name + ".report.pdf").read_bytes().startswith(b"%PDF-"):
             raise RuntimeError("The packaged analyzer did not produce a PDF report.")
         subprocess.run(
-            [str(executable), "-f", str(sample), "-s", str(collection_path)],
+            [str(executable), "-f", str(sample), "-s", str(collection_path), "--collect-only"],
             check=True, cwd=directory, timeout=120,
         )
         collection = json.loads(collection_path.read_text(encoding="utf-8"))
         if collection["status"] != "complete" or "ai_analysis" in collection:
-            raise RuntimeError("Default CLI behavior did not produce collection only.")
+            raise RuntimeError("Explicit collection-only mode produced unexpected analysis.")
         subprocess.run(
-            [str(executable), "-f", str(sample), "-s", str(report_path), "--collect-only=false"],
+            [str(executable), "-f", str(sample), "-s", str(report_path)],
             check=True,
             cwd=directory, timeout=120,
         )

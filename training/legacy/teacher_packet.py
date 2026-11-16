@@ -8,6 +8,7 @@ import sys
 
 from training.legacy.legacy_behavior_analysis import prepare_evidence
 from training.legacy.cape_adapter import static_evidence
+from training.legacy.guardrails import block_untrusted_llm
 
 
 INSTRUCTIONS = """You are preparing provisional training labels for an offline static-analysis
@@ -86,6 +87,7 @@ def build_cases(queue):
 
 
 def write_packet(queue_path, destination):
+    block_untrusted_llm()
     queue = json.loads(queue_path.read_text(encoding="utf-8"))
     cases, mapping = build_cases(queue)
     destination.mkdir(parents=True, exist_ok=False)
@@ -111,7 +113,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         count, batches = write_packet(Path(args.queue), Path(args.output))
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except (OSError, ValueError, RuntimeError, KeyError, TypeError) as exc:
         print(f"Teacher packet failed: {exc}", file=sys.stderr)
         return 1
     print(f"Prepared {count} cases in {len(batches)} batches at {args.output}")

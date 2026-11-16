@@ -101,7 +101,7 @@ class TestCLI(unittest.TestCase):
 
     def test_model_failure_preserves_collection_and_returns_error(self):
         destination = Path(self.directory.name) / "final.json"
-        with patch("sys.argv", ["aisa", "-f", str(self.path), "-s", str(destination), "--collect-only", "false"]), \
+        with patch("sys.argv", ["aisa", "-f", str(self.path), "-s", str(destination)]), \
              patch("main.analyze_report", side_effect=RuntimeError("model unavailable")), \
              patch("main.render_report"), patch("main.render_ai_analysis"):
             self.assertEqual(main(), 1)
@@ -113,7 +113,7 @@ class TestCLI(unittest.TestCase):
     def test_incomplete_collection_does_not_run_model(self):
         self.path.write_bytes(b"not a PE")
         destination = Path(self.directory.name) / "partial.json"
-        with patch("sys.argv", ["aisa", "-f", str(self.path), "-s", str(destination), "--collect-only=false"]), \
+        with patch("sys.argv", ["aisa", "-f", str(self.path), "-s", str(destination)]), \
              patch("main.analyze_report") as model, \
              patch("main.render_report"), patch("main.render_ai_analysis"):
             self.assertEqual(main(), 2)
@@ -155,13 +155,21 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(output.read_text()), report["ai_analysis"])
 
-    def test_collection_only_default_and_explicit_values(self):
-        for value in (None, "true", "TRUE"):
+    def test_default_runs_api_analysis(self):
+        self.path.write_bytes(build_api_fixture())
+        output = Path(self.directory.name) / "report.json"
+        result = self.run_cli("-f", self.path, "-s", output)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        analysis = json.loads(output.read_text())["ai_analysis"]
+        self.assertEqual(analysis["status"], "experimental")
+        self.assertTrue(any(item["name"] == "createfilew" for item in analysis["flagged_imports"]))
+
+    def test_collection_only_explicit_values(self):
+        for value in ("true", "TRUE"):
             with self.subTest(value=value), tempfile.TemporaryDirectory() as directory:
                 output = Path(directory) / "report.json"
                 args = ["aisa", "-f", str(self.path), "-s", str(output)]
-                if value is not None:
-                    args += ["--collect-only", value]
+                args += ["--collect-only", value]
                 with patch("sys.argv", args), patch("main.analyze_report") as model, \
                      patch("main.render_report"):
                     self.assertEqual(main(), 0)

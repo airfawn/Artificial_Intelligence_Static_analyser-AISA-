@@ -14,9 +14,10 @@ from rich.console import Console
 
 from cli.reporting import write_pdf_report, write_text_report
 from cli.visualizer import render_ai_analysis, render_report
+from core.api_analysis import analyze_report
 from core.workflow import analyze_file
 from main import analyze_target
-from samples.create_sample import build_minimal_pe
+from samples.create_sample import build_api_fixture, build_minimal_pe
 
 
 class TestReporting(unittest.TestCase):
@@ -76,10 +77,82 @@ class TestReporting(unittest.TestCase):
         decoded = b"".join(zlib.decompress(base64.a85decode(b"<~" + stream, adobe=True))
                            for stream in streams)
         for expected in (b"STATIC ANALYSIS REPORT", b"Executive summary", b"SHA-256",
-                         b"Extracted strings by model score", b"high-marker", b"low-marker",
-                         b"not proof of maliciousness"):
+                         b"Highest-scoring flagged strings", b"high-marker",
+                         b"not proof of maliciousness", b"Not performed.",
+                         b"--collect-only=false"):
             self.assertIn(expected, decoded)
-        self.assertLess(decoded.index(b"high-marker"), decoded.index(b"low-marker"))
+        self.assertNotIn(b"low-marker", decoded)
+
+    def test_pdf_limits_large_collections_but_text_keeps_full_evidence(self):
+        report = self.ranked_report()
+        report["strings"] = [
+            {"value": f"marker-{index:05d}-" + "x" * 1000, "offset": index,
+             "encoding": "ASCII", "length": 1013, "entropy": 1.0,
+             "model_score": index / 30000, "model_suspicious": True}
+            for index in range(30000)
+        ]
+        report["categorized_strings"] = {
+            "domains": [], "file_paths": [], "urls": [], "commands": [],
+        }
+        output = io.BytesIO()
+        write_pdf_report(report, output)
+        pdf = output.getvalue()
+        pages = len(re.findall(rb"/Type\s*/Page\b", pdf))
+        self.assertLessEqual(pages, 5)
+        streams = re.findall(rb"stream\r?\n(.*?)endstream", pdf, re.DOTALL)
+        decoded = b"".join(zlib.decompress(base64.a85decode(b"<~" + stream, adobe=True))
+                           for stream in streams)
+        self.assertIn(b"marker-29999", decoded)
+        self.assertNotIn(b"marker-00000", decoded)
+        self.assertIn(b"29980 additional model-flagged strings omitted", decoded)
+        self.assertIn(b"truncated; see full report", decoded)
+        text = io.StringIO()
+        write_text_report(report, text)
+        self.assertIn("marker-00000", text.getvalue())
+
+    def test_pdf_includes_flagged_api_and_evidence_when_analysis_enabled(self):
+        self.path.write_bytes(build_api_fixture())
+        report = analyze_file(str(self.path))
+        report["ai_analysis"] = analyze_report(report)
+        output = io.BytesIO()
+        write_pdf_report(report, output)
+        streams = re.findall(rb"stream\r?\n(.*?)endstream", output.getvalue(), re.DOTALL)
+        decoded = b"".join(zlib.decompress(base64.a85decode(b"<~" + stream, adobe=True))
+                           for stream in streams)
+        self.assertIn(b"createfilew", decoded)
+        self.assertIn(b"imports[0]", decoded)
+        self.assertIn(b"CreateFileW", decoded)
+        self.assertNotIn(b"Not performed.", decoded)
+
+    def test_default_cli_pdf_includes_flagged_api(self):
+        self.path.write_bytes(build_api_fixture())
+        script = Path(__file__).resolve().parents[1] / "main.py"
+        result = subprocess.run([sys.executable, str(script), str(self.path)],
+                                capture_output=True, text=True, cwd=self.temporary.name)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        pdf = self.path.with_name(self.path.name + ".report.pdf").read_bytes()
+        streams = re.findall(rb"stream\r?\n(.*?)endstream", pdf, re.DOTALL)
+        decoded = b"".join(zlib.decompress(base64.a85decode(b"<~" + stream, adobe=True))
+                           for stream in streams)
+        self.assertIn(b"CreateFileW", decoded)
+        self.assertNotIn(b"Not performed.", decoded)
+
+    def test_pdf_reports_incomplete_collection_and_unavailable_scores(self):
+        report = self.ranked_report()
+        report["status"] = "incomplete"
+        report["errors"] = ["Cannot load trained model"]
+        report["ai_analysis"] = {"status": "skipped", "message": "Collection incomplete."}
+        for item in report["strings"]:
+            item.pop("model_score")
+            item.pop("model_suspicious")
+        output = io.BytesIO()
+        write_pdf_report(report, output)
+        streams = re.findall(rb"stream\r?\n(.*?)endstream", output.getvalue(), re.DOTALL)
+        decoded = b"".join(zlib.decompress(base64.a85decode(b"<~" + stream, adobe=True))
+                           for stream in streams)
+        self.assertIn(b"Cannot load trained model", decoded)
+        self.assertIn(b"Status: skipped", decoded)
+        self.assertIn(b"Model scores unavailable", decoded)
 
     def test_family_labels_are_red_without_interpreting_markup(self):
         result = {

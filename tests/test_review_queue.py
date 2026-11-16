@@ -3,6 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from training.legacy.review_queue import approved_records, build_queue
 
@@ -21,6 +22,9 @@ def cape(digest, count=1):
     }
 
 
+@patch("training.legacy.prepare_reviewed.block_untrusted_llm", lambda: None)
+@patch("training.legacy.legacy_behavior_analysis.block_untrusted_llm", lambda: None)
+@patch("training.legacy.review_queue.block_untrusted_llm", lambda: None)
 class TestReviewQueue(unittest.TestCase):
     def test_queue_and_review_export(self):
         with tempfile.TemporaryDirectory() as directory:

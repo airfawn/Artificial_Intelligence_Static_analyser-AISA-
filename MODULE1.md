@@ -2,9 +2,9 @@
 
 Install the command in the project's virtual environment using `pip install .`,
 then activate that environment and run `aisa -f path/to/sample.exe` to collect
-evidence without running the API analyzer. `--collect-only` or
-`--collect-only=true` explicitly selects collection only;
-`--collect-only=false` opts into experimental offline API analysis.
+evidence and run experimental offline API analysis. Use `--collect-only` or
+`--collect-only=true` to skip API analysis; `--collect-only=false` explicitly
+enables the default behavior.
 Alternatively, use `python main.py path/to/sample.exe` without
 installing the project. Reinstall after changing the source or trained weights.
 Run `aisa -h` for options. `aisa -a sample.exe` collects all data, while
@@ -17,7 +17,13 @@ subsequent runs use `.report.1.pdf`, `.report.2.pdf`, and so on.
 Use `-s path/to/report.pdf --format pdf` to choose a new output file. For
 compatibility, `-s path/to/report.json` without a format and the legacy `-j` /
 `--json` options produce JSON. Use `--min-len 4` to set the minimum string length.
-The terminal, PDF, and text reports list strings in descending model-score order.
+The terminal and text reports list strings in descending model-score order.
+The PDF is a concise findings summary: it includes up to 20 model-flagged
+strings and 8 candidates per indicator category, ordered by source string score,
+plus packing details and up to 20 flagged API findings per type.
+It identifies omitted findings, normalizes whitespace in previews, and
+truncates long values; use JSON or text for the complete evidence. API analysis
+is included by default unless collection-only or packing-only mode is selected.
 JSON retains extraction order to preserve category evidence indices and provides
 `ranked_string_indices` for the same ranking; unscored strings come last.
 Scores and unverified family associations are leads, not verdicts.
@@ -152,7 +158,7 @@ Data collected from an unpacked file refers to the unpacked image.
 
 ## Experimental offline API analysis
 
-With `--collect-only=false`, AISA adds offline API analysis under `ai_analysis`
+By default, AISA adds offline API analysis under `ai_analysis`
 in a complete collection report. This replaces Qwen on the CLI analysis path:
 no server or network connection is used. To analyze an existing report:
 
@@ -199,12 +205,27 @@ The model is stored in `models/api_frequency_model.json`; raw reports are not
 required at analysis time. Replacing the packaged model requires reinstalling
 or rebuilding. The installer does not bundle Ollama or Qwen.
 
+## Prompt-injection safety
+
+The installed CLI does not send sample data to a language model. Its classifiers
+use numeric features, and its offline API analysis uses name matching and corpus
+statistics; sample text is data, not a prompt. It still appears in reports and
+must be treated as untrusted. Do not paste it into a language-model assistant.
+
+Legacy language-model inference, prompt preparation, and model-ready exports
+fail closed, regardless of the sample's wording. No keyword filter can reliably
+identify all prompt injections. Existing files, manually shared reports, and
+external tools are outside this guardrail; the guard does not prevent malware
+execution or other security risks.
+
 ## Historical behavior-training experiments
 
 The following Qwen-era tools and records are retained for research only.
 They are not part of the installed product or the offline API analyzer.
 Historical scripts are grouped under `training/legacy/`; existing generated
 reports are grouped under `reports/`.
+The model-related examples below describe the former workflow and are blocked
+by the prompt-injection guard; they are retained only as historical context.
 
 `training/download_pilot.py` downloads a pinned, non-representative pilot of
 public CAPE **JSON reports only**, never executables. These reports include
@@ -234,7 +255,7 @@ and 50 Sysinternals reports. A local review queue has 68 pending entries and
 static evidence, and 9 duplicate a sample. Blocked reports remain in the
 corpus; no review or AI training is implied.
 
-To prepare training data, create a JSON array of records from actual AISA
+Historically, to prepare training data, a JSON array was created from actual AISA
 collection reports and analyst reviews. Each record requires `report` (path
 relative to the review file), `split` (`train`, `valid`, or `test`), `reviewer`,
 and `chosen` (the historical Qwen `hypotheses`/`summary` JSON shape).
@@ -245,7 +266,7 @@ It does not fabricate collector reports or use dynamic activity as evidence.
 Inspect the precise evidence IDs available for a CAPE review with
 `python -m training.legacy.preview_cape path/to/report.json`.
 
-To create a queue from the pilot manifest, then export completed reviews:
+The historical queue and export commands (now disabled) were:
 
 ```text
 python -m training.legacy.review_queue create path/to/manifest.json --output path/to/review-queue.json
@@ -264,7 +285,7 @@ behavior labels. No split is assigned automatically: group related samples and
 families in the same split to limit leakage. Export checks report hashes and
 validates reviewed evidence IDs; it does not verify claims or reviewer identity.
 
-For provisional external-teacher labels, generate a separate packet with:
+The historical external-teacher packet command (now disabled) was:
 
 ```text
 python -m training.legacy.teacher_packet path/to/review-queue.json --output path/to/new-teacher-packet
@@ -295,7 +316,7 @@ For example:
 ]
 ```
 
-Provide reviewed examples in all three splits, then from the repository root run:
+The historical reviewed export command (now disabled) was:
 
 ```text
 python -m training.legacy.prepare_reviewed reviews.json --output reviewed-export
@@ -310,16 +331,15 @@ reliable.
 
 ## Historical experimental weak-label training
 
-The local-only `training.legacy.weak_supervision` tool creates an experimental SFT
-dataset without claiming analyst review. It supplies CAPE static strings and
+The now-disabled `training.legacy.weak_supervision` tool previously created an
+experimental SFT dataset without claiming analyst review. It supplied CAPE static strings and
 imports to the student, and gives a local teacher the source partition and
 sandbox signatures as weak hints. The hints are not student evidence and do
 not prove that a static artifact caused an observed behavior. The teacher can
 still generate unsupported claims even when every cited ID exists. Generated
 labels require inspection and must not be treated as ground truth.
 
-For example, after downloading the reports and making `qwen3:14b` available on
-a local Ollama server:
+The former generation commands (now disabled) were:
 
 ```text
 python -m training.download_pilot --output path/to/reports --per-class 50
@@ -336,10 +356,7 @@ static evidence, but can still contain related samples or families across
 splits; the selected reports and source partitions are biased. Neither split
 nor teacher agreement is an independent malware-accuracy benchmark.
 
-On Apple silicon, an isolated environment with `mlx-lm` can train a local
-Qwen3 adapter from those JSONL files and run `training.legacy.evaluate_weak` on the
-test split. For an Ollama model already available on a local server, test the
-same held-out examples with:
+The former Ollama evaluation command (now disabled) was:
 
 ```text
 python -m training.legacy.evaluate_weak --data path/to/weak-data --ollama-model qwen3:1.7b --port 11434 --output path/to/evaluation.json

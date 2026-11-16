@@ -109,7 +109,7 @@ def main():
     parser.add_argument("--analysis-output", help="New output JSON path for --analyze-report")
     parser.add_argument("--collect-only", nargs="?", const=True, default=None, type=parse_bool,
                         metavar="{true,false}",
-                        help="Collect only (default: true); set false to run offline API analysis")
+                        help="Collect only (default: false); use true to skip offline API analysis")
 
     args = parser.parse_args()
 
@@ -142,7 +142,8 @@ def main():
         report = analyze_target(
             file_path, min_string_len=args.min_len, export_json=args.json,
             output=args.save, format=args.format or ("json" if args.save or args.json else "pdf"),
-            mode="packing" if args.packing else "all", include_ai=args.collect_only is False,
+            mode="packing" if args.packing else "all",
+            include_ai=not args.packing and args.collect_only is not True,
         )
     except (OSError, ValueError) as exc:
         print(f"[!] Error: {exc}", file=sys.stderr)

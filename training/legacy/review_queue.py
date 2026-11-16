@@ -9,9 +9,11 @@ import sys
 from training.legacy.legacy_behavior_analysis import prepare_evidence
 from training.legacy.cape_adapter import static_evidence
 from training.legacy.prepare_reviewed import prepare
+from training.legacy.guardrails import block_untrusted_llm
 
 
 def build_queue(manifest_path):
+    block_untrusted_llm()
     root = manifest_path.resolve().parent
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if not isinstance(manifest, dict) or not isinstance(manifest.get("records"), list):

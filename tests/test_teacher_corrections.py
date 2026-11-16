@@ -2,10 +2,12 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from training.legacy.prepare_teacher_corrections import build_corrections
 
 
+@patch("training.legacy.prepare_teacher_corrections.block_untrusted_llm", lambda: None)
 class TestTeacherCorrections(unittest.TestCase):
     def test_selects_invalid_citations_and_rejects_missing_cases(self):
         with tempfile.TemporaryDirectory() as directory:

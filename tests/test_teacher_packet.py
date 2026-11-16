@@ -3,11 +3,15 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from training.legacy.review_queue import build_queue
 from training.legacy.teacher_packet import build_cases, write_packet
 
 
+@patch("training.legacy.teacher_packet.block_untrusted_llm", lambda: None)
+@patch("training.legacy.legacy_behavior_analysis.block_untrusted_llm", lambda: None)
+@patch("training.legacy.review_queue.block_untrusted_llm", lambda: None)
 class TestTeacherPacket(unittest.TestCase):
     def test_packet_only_contains_static_model_evidence_and_private_mapping(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -6,9 +6,11 @@ from pathlib import Path
 import sys
 
 from training.legacy.legacy_behavior_analysis import validate_analysis
+from training.legacy.guardrails import block_untrusted_llm
 
 
 def build_corrections(packet, response):
+    block_untrusted_llm()
     expected = {}
     for path in sorted(packet.glob("batch-*.json")):
         for case in json.loads(path.read_text(encoding="utf-8"))["cases"]:
@@ -54,7 +56,7 @@ def main(argv=None):
             json.dump(result, file, indent=2, ensure_ascii=True)
             file.write("\n")
         print(f"Prepared corrections for {len(result['cases'])} cases in {args.output}")
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except (OSError, ValueError, RuntimeError, KeyError, TypeError) as exc:
         print(f"Correction preparation failed: {exc}", file=sys.stderr)
         return 1
     return 0

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from training.legacy.legacy_behavior_analysis import analysis_schema, query_model, validate_analysis
+from training.legacy.guardrails import block_untrusted_llm
 
 
 def heldout_cases(data):
@@ -40,6 +41,7 @@ def assess(record, reference, analysis, selected):
 
 
 def evaluate(data, model_path, adapter_path):
+    block_untrusted_llm()
     from mlx_lm import generate, load
     from mlx_lm.sample_utils import make_sampler
 
@@ -67,6 +69,7 @@ def evaluate(data, model_path, adapter_path):
 
 
 def evaluate_ollama(data, model, port):
+    block_untrusted_llm()
     cases = list(heldout_cases(data))
     results = []
     for record, messages, selected, reference in cases:

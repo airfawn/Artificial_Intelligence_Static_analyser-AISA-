@@ -14,6 +14,7 @@ from training.legacy.legacy_behavior_analysis import (
     validate_analysis,
 )
 from training.legacy.cape_adapter import static_evidence
+from training.legacy.guardrails import block_untrusted_llm
 
 
 def split_for_evidence(evidence):
@@ -54,6 +55,7 @@ def teacher_prompt(prompt, report, partition):
 
 
 def prepare_records(manifest_path, limit_per_class):
+    block_untrusted_llm()
     root = manifest_path.resolve().parent
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if not isinstance(manifest, dict) or not isinstance(manifest.get("records"), list):
@@ -103,6 +105,7 @@ def prepare_records(manifest_path, limit_per_class):
 
 
 def generate(manifest_path, output, limit_per_class, model, port, resume=False):
+    block_untrusted_llm()
     manifest, records, excluded = prepare_records(manifest_path, limit_per_class)
     counts = {"train": 0, "valid": 0, "test": 0}
     generation = {

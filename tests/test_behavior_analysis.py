@@ -37,6 +37,7 @@ def hypothesis(ids=None):
     }
 
 
+@patch("training.legacy.legacy_behavior_analysis.block_untrusted_llm", lambda: None)
 class TestBehaviorAnalysis(unittest.TestCase):
     def test_invalid_server_response_is_reported(self):
         with patch("training.legacy.legacy_behavior_analysis.build_opener") as opener:

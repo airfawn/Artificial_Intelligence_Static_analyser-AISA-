@@ -7,9 +7,11 @@ import sys
 
 from training.legacy.legacy_behavior_analysis import SYSTEM, prepare_evidence, prepare_evidence_prompt, validate_analysis
 from training.legacy.cape_adapter import static_evidence
+from training.legacy.guardrails import block_untrusted_llm
 
 
 def prepare(records, base):
+    block_untrusted_llm()
     supervised = {"train": [], "valid": [], "test": []}
     preferences = {"train": [], "valid": [], "test": []}
     seen = set()
