@@ -35,7 +35,7 @@ class TestPackingFirstWorkflow(unittest.TestCase):
         upx = executable.parent / "upx" / "upx.exe"
         upx.parent.mkdir()
         upx.write_bytes(b"placeholder")
-        with patch.object(sys, "frozen", True, create=True), \
+        with patch.object(sys, "platform", "win32"), patch.object(sys, "frozen", True, create=True), \
              patch.object(sys, "executable", str(executable)), \
              patch("core.workflow.shutil.which", return_value=None):
             self.assertEqual(find_upx(), str(upx.resolve()))
@@ -52,7 +52,7 @@ class TestPackingFirstWorkflow(unittest.TestCase):
             Path(command[3]).write_bytes(self.unpacked)
             return subprocess.CompletedProcess(command, 0, "", "")
 
-        with patch.object(sys, "frozen", True, create=True), \
+        with patch.object(sys, "platform", "win32"), patch.object(sys, "frozen", True, create=True), \
              patch.object(sys, "executable", str(executable)), \
              patch("core.workflow.shutil.which", return_value=None), \
              patch("core.workflow.subprocess.run", side_effect=fake_upx):
@@ -65,6 +65,16 @@ class TestPackingFirstWorkflow(unittest.TestCase):
              patch.object(sys, "executable", str(Path(self.directory.name) / "aisa.exe")), \
              patch("core.workflow.shutil.which", return_value="system-upx"):
             self.assertEqual(find_upx(), "system-upx")
+
+    def test_macos_uses_bundled_upx_without_path(self):
+        executable = Path(self.directory.name) / "aisa"
+        upx = executable.parent / "upx" / "upx"
+        upx.parent.mkdir()
+        upx.write_bytes(b"placeholder")
+        with patch.object(sys, "platform", "darwin"), patch.object(sys, "frozen", True, create=True), \
+             patch.object(sys, "executable", str(executable)), \
+             patch("core.workflow.shutil.which", return_value=None):
+            self.assertEqual(find_upx(), str(upx.resolve()))
 
     def test_unpacked_pe_collects_all_strings_with_model_scores(self):
         path = self.write_sample(self.unpacked)

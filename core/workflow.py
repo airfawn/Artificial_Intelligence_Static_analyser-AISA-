@@ -21,10 +21,29 @@ UPX_TIMEOUT_SECONDS = 60
 
 def find_upx():
     if getattr(sys, "frozen", False):
-        bundled = Path(sys.executable).resolve().parent / "upx" / "upx.exe"
+        executable = "upx.exe" if sys.platform == "win32" else "upx"
+        bundled = Path(sys.executable).resolve().parent / "upx" / executable
         if bundled.is_file():
             return str(bundled)
     return shutil.which("upx")
+
+
+def analyze_packing_only(file_path: str) -> Dict[str, Any]:
+    """Assess the original file without unpacking or collecting strings and APIs."""
+    original = PEAnalyzer(file_path)
+    pe_summary = original.get_pe_summary(include_dropper=False)
+    model = pe_summary["packing"]["model"]
+    errors = []
+    if not original.is_valid_pe:
+        errors.append("Input is not a valid Windows PE.")
+    elif model["status"] != "trained":
+        errors.append(model["message"])
+    return {
+        "mode": "packing",
+        "pe_metadata": pe_summary,
+        "errors": errors,
+        "status": "incomplete" if errors else "complete",
+    }
 
 
 def analyze_file(file_path: str, min_string_len: int = 4) -> Dict[str, Any]:

@@ -30,6 +30,12 @@ class TestCLI(unittest.TestCase):
         for option in ("-f", "-s", "-h", "--min-len", "--collect-only"):
             self.assertIn(option, result.stdout)
 
+    def test_version_needs_no_input_or_report(self):
+        result = self.run_cli("--version")
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout.strip(), "aisa v.0.50")
+        self.assertEqual(sorted(p.name for p in Path(self.directory.name).iterdir()), ["sample.exe"])
+
     def test_file_and_save_options(self):
         destination = Path(self.directory.name) / "report.json"
         result = self.run_cli("-f", self.path, "-s", destination, "--collect-only")
@@ -45,7 +51,7 @@ class TestCLI(unittest.TestCase):
     def test_default_and_legacy_options(self):
         result = self.run_cli("-f", self.path)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(self.path.with_name(self.path.name + ".report.json").is_file())
+        self.assertTrue(self.path.with_name(self.path.name + ".report.pdf").read_bytes().startswith(b"%PDF-"))
         legacy = Path(self.directory.name) / "legacy.json"
         result = self.run_cli(self.path, "-j", legacy, "--collect-only")
         self.assertEqual(result.returncode, 0, result.stderr)

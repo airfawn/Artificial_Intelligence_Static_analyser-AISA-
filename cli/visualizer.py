@@ -17,30 +17,40 @@ def render_ai_analysis(result: Dict[str, Any]) -> None:
         console.print(Panel(Text(detail), title="AI analysis", border_style="yellow"))
         return
 
-    lines = ["Experimental offline import analysis; counts are not confidence scores."]
+    lines = Text("Experimental offline import analysis; counts are not confidence scores.")
     for item in result["flagged_imports"]:
         refs = ", ".join(f"{e['table']}[{e['index']}] {e.get('dll') or '?'}!{e['name']}"
                          for e in item["evidence"])
-        lines.append(f"\n{refs}: {item['suggestion']}")
-        lines.append(f"  Corpus: malware {item['malware_reports']}/{item['malware_total']}; "
+        lines.append(f"\n\n{refs}: {item['suggestion']}")
+        lines.append(f"\n  Corpus: malware {item['malware_reports']}/{item['malware_total']}; "
                      f"benign {item['benign_reports']}/{item['benign_total']}")
         for family in item["weak_family_counts"]:
-            lines.append(f"  Unverified family {family['label']}: {family['count']}/{family['samples']}")
+            lines.append(f"\n  Unverified family {family['label']}: {family['count']}/{family['samples']}",
+                         style="bold red")
     for item in result["patterns"]:
         refs = ", ".join(f"{e['table']}[{e['index']}] {e.get('dll') or '?'}!{e['name']}"
                          for e in item["evidence"])
-        lines.append(f"\nCombination: {refs}\n  {item['suggestion']}")
-        lines.append(f"  Corpus: malware {item['malware_reports']}/{item['malware_total']}; "
+        lines.append(f"\n\nCombination: {refs}\n  {item['suggestion']}")
+        lines.append(f"\n  Corpus: malware {item['malware_reports']}/{item['malware_total']}; "
                      f"benign {item['benign_reports']}/{item['benign_total']}")
     for item in result["observed_associations"]:
         refs = ", ".join(f"{e['table']}[{e['index']}] {e.get('dll') or '?'}!{e['name']}"
                          for e in item["evidence"])
-        lines.append(f"\nCorpus association: {refs}\n  {item['suggestion']}")
-        lines.append(f"  Corpus: malware {item['malware_reports']}/{item['malware_total']}; "
+        lines.append(f"\n\nCorpus association: {refs}\n  {item['suggestion']}")
+        lines.append(f"\n  Corpus: malware {item['malware_reports']}/{item['malware_total']}; "
                      f"benign {item['benign_reports']}/{item['benign_total']}")
-    lines.append(f"\nSummary: {result['summary']}")
-    lines.extend(result["limitations"])
-    console.print(Panel(Text("\n".join(lines)), title="Offline API analysis"))
+    lines.append(f"\n\nSummary: {result['summary']}")
+    for limitation in result["limitations"]:
+        lines.append(f"\n{limitation}")
+    console.print(Panel(lines, title="Offline API analysis"))
+
+
+def ranked_strings(strings):
+    """Return original indices in descending score order, with unscored entries last."""
+    return sorted(enumerate(strings), key=lambda item: (
+        item[1].get("model_score") is None,
+        -item[1]["model_score"] if item[1].get("model_score") is not None else 0,
+    ))
 
 
 def render_api_tables(apis: Dict[str, Any], prefix: str = "") -> None:
@@ -99,7 +109,8 @@ def render_report(report: Dict[str, Any]) -> None:
         "Likely packed" if packing["is_packed"] else "No packing indicators detected"
     )
     details = "\n".join([f"{status} (confidence: {packing['confidence']})"] + packing["reasons"])
-    console.print(Panel(Text(details), title="Packing assessment"))
+    console.print(Panel(Text(details), title="Packing assessment",
+                        border_style="red" if packing["is_packed"] else "green"))
     packer = packing["packer"]
     names = ", ".join(match["name"] for match in packer["matches"])
     identity = packer["name"] or (f"Ambiguous: {names}" if names else "Unknown")
@@ -108,10 +119,12 @@ def render_report(report: Dict[str, Any]) -> None:
         f"\nPrediction: {prediction['label']} (centroid distance: {prediction['distance']:.4f})"
         if prediction else ""
     )
-    console.print(Panel(Text(
-        f"Section-name identification: {identity}\n"
-        f"Packing model: {packing['model']['status']} — {packing['model']['message']}{model_detail}"
-    ), title="Packer identification"))
+    identification = Text("Section-name identification: ")
+    identification.append(identity, style="bold red" if packer["name"] or names else "yellow")
+    identification.append(
+        f"\nPacking model: {packing['model']['status']} — {packing['model']['message']}{model_detail}"
+    )
+    console.print(Panel(identification, title="Packer identification"))
     weighted = packing["weighted_score"]
     score = weighted["score"]
     score_detail = (
@@ -137,6 +150,11 @@ def render_report(report: Dict[str, Any]) -> None:
                 str(section["entropy"]), ", ".join(flags) or "none",
             )
         console.print(sections)
+
+    if report.get("mode") == "packing":
+        for error in report["errors"]:
+            console.print(Panel(Text(error), title="Packing assessment error", border_style="red"))
+        return
 
     console.print(Panel(Text(report["unpacking"]["message"]), title="Unpacking"))
     analyzed = report.get("analyzed_file")
@@ -180,13 +198,13 @@ def render_report(report: Dict[str, Any]) -> None:
     table = Table(title=f"Extracted strings: {len(strings)}")
     for name in ("Index", "Offset", "Encoding", "Length", "Entropy", "Model score", "Model flag", "String"):
         table.add_column(name)
-    for index, entry in enumerate(strings):
+    for index, entry in ranked_strings(strings):
         score = entry.get("model_score")
         table.add_row(
             str(index), hex(entry["offset"]), entry["encoding"], str(entry["length"]),
             str(entry["entropy"]), f"{score:.4f}" if score is not None else "unavailable",
             str(entry["model_suspicious"]) if "model_suspicious" in entry else "unavailable",
-            Text(entry["value"]),
+            Text(entry["value"], style="red" if entry.get("model_suspicious") else ""),
         )
     console.print(table)
     console.print("Model scores represent per-string suspiciousness, not readability or a file verdict.")

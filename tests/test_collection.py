@@ -72,10 +72,10 @@ class TestModuleOneCollection(unittest.TestCase):
         first = self.path.with_name(self.path.name + ".report.json")
         first.write_text("existing")
         with patch("main.render_report"):
-            report = analyze_target(str(self.path))
+            report = analyze_target(str(self.path), format="json")
             second = self.path.with_name(self.path.name + ".report.1.json")
             self.assertEqual(json.loads(second.read_text()), report)
-            analyze_target(str(self.path))
+            analyze_target(str(self.path), format="json")
         self.assertEqual(first.read_text(), "existing")
         self.assertTrue(self.path.with_name(self.path.name + ".report.2.json").exists())
         with self.assertRaises(FileExistsError):
@@ -85,7 +85,7 @@ class TestModuleOneCollection(unittest.TestCase):
     def test_invalid_pe_still_saves_partial_report(self):
         self.path.write_bytes(b"not a PE")
         with patch("main.render_report"):
-            report = analyze_target(str(self.path))
+            report = analyze_target(str(self.path), format="json")
         saved = self.path.with_name(self.path.name + ".report.json")
         self.assertEqual(json.loads(saved.read_text()), report)
         self.assertEqual(report["status"], "incomplete")
@@ -114,7 +114,7 @@ class TestModuleOneCollection(unittest.TestCase):
         self.assertNotIn("Imports: 0", output.getvalue())
 
         with patch("main.render_report"):
-            saved_report = analyze_target(str(self.path))
+            saved_report = analyze_target(str(self.path), format="json")
         saved = self.path.with_name(self.path.name + ".report.json")
         self.assertEqual(json.loads(saved.read_text()), saved_report)
         self.assertIsNone(saved_report["apis"]["imports"])

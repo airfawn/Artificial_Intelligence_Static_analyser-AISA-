@@ -74,7 +74,7 @@ class TestStringCategories(unittest.TestCase):
             path = Path(directory) / "fixture.exe"
             path.write_bytes(bytes(build_minimal_pe()) + payload)
             with patch("core.workflow.MODEL_PATH", Path(directory) / "missing.json"), patch("main.render_report"):
-                report = analyze_target(str(path))
+                report = analyze_target(str(path), format="json")
             self.assertEqual(report["status"], "incomplete")
             self.assertTrue(report["categorized_strings"]["commands"])
             self.assertTrue(report["categorized_strings"]["domains"])
@@ -97,7 +97,7 @@ class TestStringCategories(unittest.TestCase):
             path = Path(directory) / "fixture.exe"
             path.write_bytes(bytes(build_minimal_pe()) + b"\x00cmd.exe /c http://example.org/a C:\\Temp\\file.exe\x00")
             result = subprocess.run(
-                [sys.executable, str(project / "main.py"), str(path), "--collect-only"],
+                [sys.executable, str(project / "main.py"), str(path), "--collect-only", "--format=json"],
                 capture_output=True, text=True, cwd=project,
             )
             self.assertEqual(result.returncode, 0, result.stderr)

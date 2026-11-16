@@ -4,20 +4,24 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aisa-static-analysis"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Static PE data collection"
 requires-python = ">=3.9"
 dependencies = [
     "pefile>=2024.8.26",
     "rich>=13.0.0",
+    "reportlab>=4.0.0",
 ]
 
 [project.scripts]
 aisa = "main:main"
 
 [tool.setuptools]
-py-modules = ["main"]
+py-modules = ["main", "aisa_version"]
 packages = ["core", "cli", "models"]
+
+[tool.setuptools.dynamic]
+version = {attr = "aisa_version.__version__"}
 
 [tool.setuptools.package-data]
 models = ["string_model_weights.json", "packing_model.json", "api_frequency_model.json"]

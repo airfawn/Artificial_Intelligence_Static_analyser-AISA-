@@ -61,7 +61,7 @@ jobs:
             $env:Path = "$destination;$env:Path"
             & aisa -h
             if ($LASTEXITCODE -ne 0) { throw "AISA could not be run from PATH." }
-            python installer/windows/smoke_test.py "$destination\aisa.exe"
+            python installer/smoke_test.py "$destination\aisa.exe"
             if ($LASTEXITCODE -ne 0) { throw "Installed executable failed its smoke test." }
             if ((Test-Path (Join-Path $destination "ollama")) -or
                 (Test-Path (Join-Path $destination "ollama-models"))) {

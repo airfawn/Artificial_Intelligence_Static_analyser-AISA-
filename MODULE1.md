@@ -7,12 +7,22 @@ evidence without running the API analyzer. `--collect-only` or
 `--collect-only=false` opts into experimental offline API analysis.
 Alternatively, use `python main.py path/to/sample.exe` without
 installing the project. Reinstall after changing the source or trained weights.
-Run `aisa -h` for options. The report
-is displayed in the terminal and saved next to the input as
-`sample.exe.report.json`. Existing reports are not overwritten: subsequent runs
-use `.report.1.json`, `.report.2.json`, and so on. Use `-s path/to/report.json`
-to select a new output file, and `--min-len 4` to set the minimum string length.
-The aliases `-j` and `--json` remain available for the output path.
+Run `aisa -h` for options. `aisa -a sample.exe` collects all data, while
+`aisa -p sample.exe` performs only the packing assessment (without unpacking,
+string extraction, or API collection). Omitting the mode retains full collection.
+The report is displayed in the terminal and saved next to the input as
+`sample.exe.report.pdf` by default. Select `--format pdf`, `--format json`, or
+`--format text` (`-format` also works). Existing reports are not overwritten:
+subsequent runs use `.report.1.pdf`, `.report.2.pdf`, and so on.
+Use `-s path/to/report.pdf --format pdf` to choose a new output file. For
+compatibility, `-s path/to/report.json` without a format and the legacy `-j` /
+`--json` options produce JSON. Use `--min-len 4` to set the minimum string length.
+The terminal, PDF, and text reports list strings in descending model-score order.
+JSON retains extraction order to preserve category evidence indices and provides
+`ranked_string_indices` for the same ranking; unscored strings come last.
+Scores and unverified family associations are leads, not verdicts.
+Run `aisa --version` to display the product version; the version source used by
+the Python package and both installers is `aisa_version.py`.
 An explicitly named output file must not already exist. Exit code 0 means the
 collection completed, 2 means it is incomplete, and 1 means an I/O or input
 error prevented completion, including an AI failure. A complete collection is
@@ -391,3 +401,29 @@ against the frozen executable, including offline API analysis. Distributors
 should review the bundled UPX license and applicable
 corresponding-source obligations. The GitHub workflow additionally tests
 installation, the installed executable, PATH addition, and uninstallation.
+
+## macOS offline installers
+
+The manually run `Build macOS offline installers` workflow produces separate
+unsigned `.pkg` artifacts for Apple silicon and Intel Macs. Each package includes
+the Python runtime, dependencies, all three models, and a native UPX executable
+with its licenses. Installing requires administrator authorization and places
+the application under `/usr/local/lib/aisa` and the `aisa` command at
+`/usr/local/bin/aisa`; these paths may replace an existing AISA installation.
+The packages are not signed or notarized, so macOS Gatekeeper or organizational
+policies may block them. Build on a macOS version compatible with the target.
+
+To build locally on the intended architecture, install Python, PyInstaller and
+UPX, then supply the UPX executable and the directory containing its `COPYING`
+and `LICENSE` files:
+
+```sh
+python3 -m pip install . pyinstaller==6.17.0
+python3 installer/macos/build.py --upx "$(brew --prefix upx)/bin/upx" \
+  --upx-license-dir "$(brew --prefix upx)"
+```
+
+The package is written under `dist/macos`. The build verifies that UPX does not
+depend on unbundled libraries and exercises the frozen application, including
+PDF generation, all models, and real UPX unpacking without UPX on PATH. The
+GitHub workflow additionally installs and tests the resulting package.

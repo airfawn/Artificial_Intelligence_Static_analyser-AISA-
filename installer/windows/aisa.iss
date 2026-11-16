@@ -4,11 +4,14 @@
 #ifndef OutputDir
   #error OutputDir must be specified
 #endif
+#ifndef AppVersion
+  #error AppVersion must be specified
+#endif
 
 [Setup]
 AppId={{E0E2DE8F-5369-4B9D-B0A2-9A2F75CDAC64}
 AppName=AISA Static Analysis
-AppVersion=0.1.0
+AppVersion={#AppVersion}
 DefaultDirName={localappdata}\Programs\AISA
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest

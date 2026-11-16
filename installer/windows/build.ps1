@@ -9,6 +9,10 @@ param(
 $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $upx = (Resolve-Path $UpxDirectory).Path
+$version = & $Python -c "import runpy, sys; print(runpy.run_path(sys.argv[1])['__version__'])" (Join-Path $root "aisa_version.py")
+if ($LASTEXITCODE -ne 0 -or -not $version) {
+    throw "Could not read the AISA product version."
+}
 if (-not $OutputDirectory) {
     $OutputDirectory = Join-Path $root "dist\windows"
 }
@@ -50,9 +54,9 @@ try {
     Copy-Item -LiteralPath (Join-Path $upx "LICENSE") -Destination $appUpx
     & (Join-Path $appUpx "upx.exe") --version
     if ($LASTEXITCODE -ne 0) { throw "The bundled UPX executable could not run." }
-    & $Python (Join-Path $PSScriptRoot "smoke_test.py") (Join-Path $app "aisa.exe")
+    & $Python (Join-Path $root "installer\smoke_test.py") (Join-Path $app "aisa.exe")
     if ($LASTEXITCODE -ne 0) { throw "The packaged AISA executable failed its smoke test." }
-    & $InnoCompiler "/DAppSource=$app" "/DOutputDir=$output" `
+    & $InnoCompiler "/DAppSource=$app" "/DOutputDir=$output" "/DAppVersion=$version" `
         (Join-Path $PSScriptRoot "aisa.iss")
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE." }
     Write-Host "Installer created in $output"
