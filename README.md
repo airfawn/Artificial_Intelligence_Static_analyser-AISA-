@@ -357,7 +357,7 @@ Analyse suspicious samples only within an appropriately isolated environment.
 
 Author
 
-Adi
+Adithya V
 
 Interested in Cybersecurity, Malware Analysis, Reverse Engineering and Machine Learning.
 
